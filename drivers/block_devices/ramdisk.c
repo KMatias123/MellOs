@@ -1,7 +1,7 @@
 #include "ramdisk.h"
 #include "dynamic_mem.h"
 #include "mellos/block_device.h"
-#include "mem.h"
+#include "string.h"
 #include "stddef.h"
 
 

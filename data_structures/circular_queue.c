@@ -1,6 +1,5 @@
 #include "circular_queue.h"
-#include "mem.h"
-#include "mellos/kernel/kernel.h"
+#include "string.h"
 #include "dynamic_mem.h"
 #include "stddef.h"
 #include "errno.h"

@@ -1,19 +1,12 @@
-#include "conversions.h"
 #include "errno.h"
 #include "limits.h"
-#include "mellos/kernel/streams.h"
-#include "mem.h"
 #include "stddef.h"
 #include "stdint.h"
 #include "string.h"
 #include "unistd.h"
 #include "stdio.h"
+#include "conversions.h"
 
-#ifdef CONFIG_VESA
-#include "vesa.h"
-#else
-#include "vesa_text.h"
-#endif
 union arg {
 	long long ll;
 	unsigned long long ull;

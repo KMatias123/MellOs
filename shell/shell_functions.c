@@ -5,11 +5,7 @@
 #else
 #include "vga_text.h"
 #endif
-#include "conversions.h"
-#include "mem.h"
-#include "shell/shell.h"
 #include "string.h"
-#include "timer.h"
 
 #include "functions/functions.h"
 #include "shell/shell_functions.h"

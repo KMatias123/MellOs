@@ -6,8 +6,7 @@
 #include "port_io.h"
 #include "conversions.h"
 #include "colours.h"
-#include "mem.h"
-#include "uart.h"
+#include "string.h"
 
 #include "memory_area_spec.h"
 

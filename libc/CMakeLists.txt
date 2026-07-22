@@ -1,7 +1,14 @@
-file(GLOB_RECURSE LIBC_C_SRCS CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/*.c)
-list(FILTER LIBC_C_SRCS EXCLUDE REGEX ".*/CMakeFiles/.*")
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-add_library(mellos_libc STATIC ${LIBC_C_SRCS})
-target_include_directories(mellos_libc PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
-target_include_directories(mellos_libc PRIVATE ${CMAKE_SOURCE_DIR}/global/include)
-target_link_libraries(mellos_libc utils cpu_api)
+add_library(mellos_libc STATIC
+        error_handling.c
+        format.c
+        math.c
+        string.c
+        assert.c
+        memory_functions.c
+        unistd.c
+        memory_allocator/bitmap_allocator.c
+)
+target_include_directories(mellos_libc PUBLIC include)
+target_link_libraries(mellos_libc utils)

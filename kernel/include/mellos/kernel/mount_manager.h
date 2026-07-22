@@ -13,7 +13,7 @@ struct file;
  */
 typedef struct file file_t;
 
-void init_vfs(void);
+int init_vfs(char* root_part);
 void uninitialize_mount_manager(void);
 vfs_mount_t* mount(superblock_t* sb, block_device_t* bdev, const char* target);
 void unmount(vfs_mount_t* fs);

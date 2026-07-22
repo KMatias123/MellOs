@@ -1,15 +1,15 @@
+#include "linked_list.h"
 #include "mellos/fs.h"
 
 #include "dynamic_mem.h"
 #include "mellos/kernel/dentry.h"
 #include "mellos/kernel/kernel.h"
-#include "mellos/kernel/kernel_stdio.h"
 #include "mellos/kernel/mount_manager.h"
 
+#include "kernel_stdio.h"
 #include "stddef.h"
 #include "string.h"
 
-#include "mellos/ramfs.h"
 #include "statfs.h"
 
 #include "mellos/block_device.h"
@@ -17,6 +17,7 @@
 #include "errno.h"
 
 #include "filesystems/procfs.h"
+#include "filesystems/fat.h"
 
 #include "ramdisk.h"
 
@@ -114,31 +115,47 @@ vfs_mount_t* get_proc_mount() {
 	return proc_mnt->data;
 }
 
-void init_vfs() {
+int init_vfs(char* root_part) {
+	if (!root_part) {
+		kprintf("root partition not set in kernel command line");
+		return 1;
+	}
+	if (strlen(root_part) < 2) {
+		kprintf("root partition name length too short");
+		return 1;
+	}
 	kprintf("Initializing VFS...\n");
 	if (mounts != NULL) {
 		kprintf("VFS already initialized!\n");
-		return;
+		return 1;
 	}
 
 	mounts = linked_list_create();
 
 	// todo: implement some fs for this
-	vfs_mount_t* mnt = kmalloc(sizeof(vfs_mount_t));
-	mnt->root = kmalloc(sizeof(inode_t));
-	root_mnt = mnt;
-	mnt->root->sb = kmalloc(sizeof(superblock_t));
-	mnt->sb = mnt->root->sb;
-	mnt->mounted = true;
+	fat_mount_data_t* root_mount_data = kzalloc(sizeof(fat_mount_data_t));
+	root_mount_data->is_root = true;
+	block_device_t* root_partition_device = get_block_device_by_name(root_part);
+	if (!root_partition_device) {
+		kprintf("could not find root partition device");
+		return 1;
+	}
+	vfs_mount_t* root_mount = fat_get_fs_type()->mount(root_partition_device, "/", root_mount_data);
+
+	root_mount->root = kzalloc(sizeof(inode_t));
+	root_mnt = root_mount;
+	root_mount->root->sb = kmalloc(sizeof(superblock_t));
+	root_mount->sb = root_mount->root->sb;
+	root_mount->mounted = true;
 
 	dentry_t* droot = dops.dentry_alloc(NULL, "/");
-	dops.dentry_init(droot, mnt->root);
+	dops.dentry_init(droot, root_mount->root);
 	droot->dops = &dops;
 	droot->refcount++;
-	droot->inode = mnt->root;
-	mnt->root->dentry = droot;
+	droot->inode = root_mount->root;
+	root_mount->root->dentry = droot;
 
-	linked_list_push_back(mounts, mnt);
+	linked_list_push_back(mounts, root_mount);
 
 	procfs_mount_data_t procfs_mount_data = {.parent_dentry = droot};
 
@@ -148,13 +165,14 @@ void init_vfs() {
 	if (procfs_mount == NULL) {
 		kfprintf(kstderr, "Failed to get procfs mount from mount()\n");
 		asm("hlt\n");
-		return;
+		return 1;
 	}
 
 	linked_list_push_back(mounts, procfs_mount);
 
 	kprintf("VFS initialized!\n");
 	mounts_initialized = true;
+	return 0;
 }
 
 void uninitialize_mount_manager() {
@@ -184,6 +202,7 @@ void init_fs_registry() {
 	fs_registry_initialized = true;
 	registered_filesystems = linked_list_create();
 	linked_list_push_back(registered_filesystems, procfs_get_file_ops());
+	linked_list_push_back(registered_filesystems, fat_get_super_ops());
 }
 
 void destroy_fs_registry() {
@@ -290,12 +309,17 @@ vfs_mount_t* mount(superblock_t* sb, block_device_t* bdev, const char* path) {
 	}
 	vfs_mount_t* mount_point = NULL;
 
-	if (sb == NULL || sb->root == NULL || sb->ops == NULL || sb->ops->statfs == NULL) {
-		kprintf("Invalid superblock!\n");
+	if (sb == NULL || sb->ops == NULL || sb->ops->statfs == NULL) {
+		kprintf("Invalid superblock!, %b %b %b\n", sb == NULL, sb->ops == NULL, (sb->ops == NULL || sb->ops->statfs == NULL));
 		goto free;
 	}
 
-	mount_point = sb->fs->mount(bdev, path, statfs);
+	fat_mount_data_t* mdata = kzalloc(sizeof(fat_mount_data_t));
+	mdata->is_root = true;
+	mount_point = sb->fs->mount(bdev, path, mdata);
+	if (mount_point == NULL) {
+		goto free;
+	}
 
 	sb->ops->statfs(sb, statfs);
 
@@ -337,6 +361,16 @@ vfs_mount_t* get_mount_for_bd(block_device_t* bd) {
 		node = node->next;
 	}
 	return NULL;
+}
+
+superblock_t* create_superblock(block_device_t* blockdevice, char* mount_point, fs_type_t* fs) {
+
+	superblock_t* sb = kzalloc(sizeof(superblock_t));
+
+	sb->bd = blockdevice;
+	sb->block_size = blockdevice->logical_block_size;
+	sb->total_blocks = blockdevice->num_blocks;
+	return sb;
 }
 
 vfs_mount_t* get_mount_for_sb(superblock_t* sb) {

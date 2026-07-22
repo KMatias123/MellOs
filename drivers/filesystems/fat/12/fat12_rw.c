@@ -1,7 +1,7 @@
 #include "fat12_rw.h"
 #include "dynamic_mem.h"
 #include "errno.h"
-#include "fat.h"
+#include "filesystems/fat.h"
 #include "math.h"
 #include "string.h"
 
@@ -36,10 +36,10 @@ int fat12_create(inode_t* dir, const char* name, uint32_t type, inode_t** out) {
 
 	in->private = fin;
 
-	in->ops = &fat12_inode_ops;
+	in->ops = fat_get_inode_ops();
 
 	in->sb = dir->sb;
-	in->fops = &fat12_file_ops;
+	in->fops = fat_get_file_ops();
 	return 0;
 }
 

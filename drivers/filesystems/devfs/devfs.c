@@ -4,7 +4,7 @@
 #include "mellos/block_device.h"
 #include "mellos/fs.h"
 #include "mellos/kernel/kernel.h"
-#include "mellos/kernel/kernel_stdio.h"
+#include "kernel_stdio.h"
 #include "mellos/kernel/mount_manager.h"
 
 bool devfs_initialized = false;

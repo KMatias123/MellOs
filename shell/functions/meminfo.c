@@ -1,4 +1,5 @@
 #include "mellos/kernel/memory_mapper.h"
+#include "kernel_stdio.h"
 
 #include "stdio.h"
 
@@ -11,5 +12,5 @@ FDEF(meminfo){
     kprintf("Memory Information:\n");
 
     // Dump full memory map via kernel-side printing to the current stdout device
-    dump_memory_map(stdout);
+    dump_memory_map(kstdout);
 }

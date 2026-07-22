@@ -1,6 +1,7 @@
 #include "process_memory.h"
 #include "dynamic_mem.h"
-#include "mem.h"
+#include "string.h"
+#include "memory_area_spec.h"
 #include "stddef.h"
 
 #define INITIAL_PAGE_CAPACITY 16
@@ -85,6 +86,20 @@ bool process_memory_owns_page(const process_page_list_t* page_list, uintptr_t pa
 
 	for (size_t i = 0; i < page_list->page_count; i++) {
 		if (page_list->pages[i] == page_addr) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool process_memory_owns(const process_page_list_t* page_list, uintptr_t addr_start, uintptr_t addr_end) {
+	if (page_list == NULL || page_list->page_count == 0) {
+		return false;
+	}
+
+	for (size_t i = 0; i < page_list->page_count; i++) {
+		if (page_list->pages[i] < addr_start && page_list->pages[i] + PAGE_SIZE > addr_end) {
 			return true;
 		}
 	}

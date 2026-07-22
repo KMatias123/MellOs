@@ -2,36 +2,27 @@
 #include "mellos/kernel/streams.h"
 
 #include "mellos/fs.h"
+#include "assert.h"
 
-FILE* kstdin;
-FILE* kstdout;
-FILE* kstderr;
+file_t* kstdin;
+file_t* kstdout;
+file_t* kstderr;
 
-size_t kstream_write(FILE* stream, const char* s, size_t size) {
-	if (!stream) {
-		return 0;
-	}
-	file_t* f = stream->device;
-	return f->ops->write(f, s, size, 0);
+size_t kstream_write(file_t* stream, const char* s, size_t size) {
+	assert_msg(stream != NULL, "Stream is NULL");
+	return stream->ops->write(stream, s, size, 0);
 }
-size_t kstream_read(FILE* stream, char* s, size_t size) {
-	if (!stream) {
-		return 0;
-	}
-	file_t* f = stream->device;
-	return f->ops->read(f, s, size, 0);
+size_t kstream_read(file_t* stream, char* s, size_t size) {
+	assert_msg(stream != NULL, "Stream is NULL");
+	return stream->ops->read(stream, s, size, 0);
 }
-size_t kstream_flush(FILE* stream) {
-	if (!stream) {
-		return 0;
-	}
-	file_t* f = stream->device;
-	f->ops->ioctl(f, 0, NULL);
+size_t kstream_flush(file_t* stream) {
+	assert_msg(stream != NULL, "Stream is NULL");
+	stream->ops->ioctl(stream, 0, NULL);
 	return 0;
 }
-size_t kstream_close(FILE* stream) {
-	if (!stream) {
-		return 0;
-	}
+size_t kstream_close(file_t* stream) {
+	assert_msg(stream != NULL, "Stream is NULL");
+	stream->ops->ioctl(stream, 3, NULL);
 	return 0;
 }

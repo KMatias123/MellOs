@@ -1,7 +1,7 @@
 #include "fdef.h"
 #include "mellos/block_device.h"
 #include "mellos/fs.h"
-#include "mellos/kernel/kernel_stdio.h"
+#include "kernel_stdio.h"
 
 #include "dynamic_mem.h"
 #include "mellos/kernel/mount_manager.h"
@@ -141,5 +141,5 @@ FDEF(cd) {
 		return;
 	}
 	set_working_dir(inode);
-	refreshShell();
+	refresh_shell();
 }

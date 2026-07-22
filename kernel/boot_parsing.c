@@ -1,18 +1,21 @@
 
-#include "mellos/kernel/kernel.h"
-#include "mem.h"
+#include "kernel_stdio.h"
+#include "mellos/kernel/boot_params.h"
+#include "stdbool.h"
+#include "stddef.h"
 #include "string.h"
+#include "stdlib.h"
 
-char value[128];
+char value[BOOT_PARAMS_LENGTH];
 
-const char* cmdline_get(const char* key, const char* fallback) {
+char* cmdline_get(const char* key, char* fallback) {
 	const size_t key_len = strlen(key);
 
-	const char* p = boot_cmdline;
+	char* p = boot_cmdline;
 	int key_start_offset = 0;
-	const char* value_start = NULL;
+	char* value_start = NULL;
 
-	while (p++) {
+	do {
 		if (value_start != NULL) {
 			int i = 0;
 			for (i = 0; value_start[i] != ' ' && value_start[i] != '\n' && value_start[i] != '\0'; i++) {
@@ -29,7 +32,70 @@ const char* cmdline_get(const char* key, const char* fallback) {
 		} else if (*p == ' ') {
 			key_start_offset = p - boot_cmdline;
 		}
-	}
+		p++;
+	} while(*p != '\0');
 
 	return fallback;
+}
+
+size_t boot_params_storage_iterator = 0;
+
+int cache_boot_params() {
+	uint32_t i = 0;
+	boot_parameter_t* p;
+	size_t str_length;
+
+	do {
+		p = &(boot_params[i]);
+
+		const char* retval = cmdline_get(p->keyname, p->default_value);
+		switch (p->format) {
+			case PARAM_TYPE_STRING:
+			str_length = strlen(retval);
+			memmove(&(boot_params_storage[boot_params_storage_iterator]), retval, str_length);
+			p->value = &(boot_params_storage[boot_params_storage_iterator]);
+			boot_params_storage_iterator += str_length;
+		break;
+			case PARAM_TYPE_BOOL:
+			if (strcmp(retval, "true") == 0) {
+				boot_params_storage[boot_params_storage_iterator] = true;
+				p->value = &(boot_params_storage[boot_params_storage_iterator]);
+				boot_params_storage_iterator++;
+			} else if (strcmp(retval, "false") == 0) {
+				boot_params_storage[boot_params_storage_iterator] = false;
+				p->value = &(boot_params_storage[boot_params_storage_iterator]);
+				boot_params_storage_iterator++;
+			} else {
+				kprintf("Invalid boolean for value %s", retval);
+			}
+		break;
+			case PARAM_TYPE_INT32:
+			boot_params_storage[boot_params_storage_iterator] = atoi((char*)retval);
+			p->value = &(boot_params_storage[boot_params_storage_iterator]);
+			boot_params_storage_iterator += sizeof(int32_t);
+		break;
+		}
+
+
+		i++;
+	} while(p->last == false);
+
+	return 0;
+}
+
+void* param_get_address(const char* key) {
+	boot_parameter_t* p;
+	int i = 0;
+	do {
+		p = &(boot_params[i]);
+		if (strcmp(p->keyname, key) == 0) {
+			if (p->value == NULL) {
+				return p->default_value;
+			} else {
+				return p->value;
+			}
+		}
+		i++;
+	} while (!p->last);
+	return NULL;
 }

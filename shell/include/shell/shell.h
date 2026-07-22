@@ -4,7 +4,7 @@
 #include "mellos/fs.h"
 
 void load_shell(void);
-void refreshShell(void);
+void refresh_shell(void);
 void parseCommand(void);
 void add_filewrite_task(char* str, char* filename, uint32_t len);
 inode_t* get_working_dir(void);

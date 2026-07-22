@@ -12,4 +12,4 @@ add_library(data_structures STATIC
         list.c
 )
 target_include_directories(data_structures PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
-target_link_libraries(data_structures mellos_libc memory)
+target_link_libraries(data_structures memory)

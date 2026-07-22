@@ -2,10 +2,10 @@
 #include "dynamic_mem.h"
 #include "errno.h"
 #include "mellos/kernel/kernel.h"
-#include "mellos/kernel/kernel_stdio.h"
+#include "kernel_stdio.h"
 #include "mellos/kernel/memory_mapper.h"
-#include "mem.h"
 #include "paging.h"
+#include "string.h"
 
 __attribute__((
     section(".low.bss"))) static uint32_t early_frame_bitmap[HEAP_SIZE / PHYSICAL_FRAME_SIZE / 32];

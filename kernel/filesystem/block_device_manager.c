@@ -1,15 +1,19 @@
+#include "disk.h"
+#include "filesystems/fat.h"
 #include "linked_list.h"
 #include "mellos/block_device.h"
+#include "mellos/fs.h"
+#include "mellos/kernel/mount_manager.h"
 #include "ramdisk.h"
 
-#include "mellos/kernel/kernel_stdio.h"
-
-#include "string.h"
+#include "kernel_stdio.h"
 
 #include "dynamic_mem.h"
 
 #include "errno.h"
 #include "mellos/kernel/kernel.h"
+#include "stddef.h"
+#include "string.h"
 
 volatile int32_t bdev_lock = 0;
 
@@ -65,6 +69,34 @@ int create_partition_device(block_device_t* parent, int index, uint64_t start_lb
 	return 0;
 }
 
+block_device_t* register_disk(disk_info_t* diskinfo) {
+	if (diskinfo->drive == PATA_CHS) {
+		kfprintf(kstderr, "chs is unsupported\n");
+		return NULL;
+	}
+	block_device_t* block_device = kzalloc(sizeof(block_device_t));
+	disk_device_t* disk_device = kzalloc(sizeof(disk_device_t));
+	lba_data_t* lbadata = (lba_data_t*)diskinfo->data;
+	block_device->driver_data = disk_device;
+	disk_device->disk_info = diskinfo;
+	block_device->flags |= BLOCK_DEVICE_FLAG_DISK_DEVICE;
+	if (diskinfo->id == DRIVE_SELECT_MASTER) {
+		block_device->name = "hd0";
+	} else {
+		block_device->name = "hd1";
+	}
+
+	block_device->logical_block_size = diskinfo->sector_size;
+	block_device->num_blocks = lbadata->sector_count;
+
+	block_device->ops = kzalloc(sizeof(block_device_ops));
+	block_device->ops->read_blocks = &atapi_read;
+	block_device->ops->write_blocks = &atapi_write;
+	block_device->ops->flush = &atapi_flush;
+
+	return block_device;
+}
+
 /**
  * initializes the ramdisk, called on kernel init
  * todo: add compile options for ramdisk count
@@ -78,6 +110,40 @@ int bdev_initialize_blockdevices() {
 	SpinLock(&bdev_lock);
 	block_devices = linked_list_create();
 	SpinUnlock(&bdev_lock);
+
+	disk_info_t* diskinfo = kzalloc(sizeof(disk_info_t));
+	read_disk_info(DRIVE_SELECT_MASTER, diskinfo);
+
+	if (!diskinfo) {
+		kpanic_message("Error getting disk info from primary drive");
+	}
+
+	mbr_t* mbr = kzalloc(sizeof(mbr_t));
+	if (read_sector(diskinfo, 0, 1, (uint16_t*)mbr) != 0) {
+		kpanic_message("Error reading first sector of primary drive");
+	}
+	//kprintf("%u",mbr->boot_code);
+	block_device_t* primarybd = register_disk(diskinfo);
+	for (int i = 0; i < 4; i++) {
+		mbr_partition_entry_t* entry = &(mbr->entries[i]);
+		if (entry->type == 0 || entry->lba_count == 0) {
+			kprintf("discarding partition: \nlba_start: %u\nlba_count: %u\ntype: %u\n", entry->lba_start, entry->lba_count, entry->type);
+			continue;
+		}
+		create_partition_device(primarybd, i, entry->lba_start, entry->lba_count, entry->type);
+	}
+
+	block_device_t* root_bd = get_block_device_by_name("hd0p1");
+	superblock_t* root_sb = kzalloc(sizeof(superblock_t));
+	root_sb->bd = root_bd;
+	root_sb->ops = fat_get_super_ops();
+	root_sb->fs = fat_get_fs_type();
+	vfs_mount_t* root_mnt = mount(root_sb, root_bd, "/");
+
+	if (!root_mnt) {
+		asm("hlt");
+	}
+
 	void* ramdisk = kmalloc(RAMDISK_BLOCK_SIZE * RAMDISK_BLOCK_COUNT);
 
 	block_device_t* ramdisk_device =
@@ -126,8 +192,12 @@ bool filter_function(list_node_t* node, void* name) {
 	return strcmp(bdev.name, name) == 0;
 }
 
-block_device_t* get_block_device_by_name(const char* name) {
-	return linked_list_get_node(block_devices, name, filter_function)->data;
+block_device_t* get_block_device_by_name(char* name) {
+	list_node_t* node = linked_list_get_node(block_devices, name, filter_function);
+	if (!node) {
+		return NULL;
+	}
+	return node->data;
 }
 
 // todo: unmount all related filesystems

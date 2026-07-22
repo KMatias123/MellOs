@@ -1,13 +1,10 @@
 #include "paging.h"
 #include "autoconf.h"
-#include "conversions.h"
 #include "cpu/isr.h"
 #include "dynamic_mem.h"
 #include "frame_allocator.h"
 #include "mellos/kernel/kernel.h"
-#include "mellos/kernel/kernel_stdio.h"
-#include "mellos/kernel/memory_mapper.h"
-#include "mem.h"
+#include "kernel_stdio.h"
 #include "memory_area_spec.h"
 #include "paging_utils.h"
 #include "process_memory.h"
@@ -15,7 +12,7 @@
 #include "stddef.h"
 #include "stdint.h"
 #include "stdlib.h"
-#include "vesa_text.h"
+#include "string.h"
 
 __attribute__((section(".low.bss"))) uint32_t base_page_directory_low[1024]
     __attribute__((aligned(4096)));

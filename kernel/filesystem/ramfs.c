@@ -3,12 +3,11 @@
 #include "errno.h"
 #include "math.h"
 #include "mellos/fs.h"
-#include "mellos/kernel/kernel_stdio.h"
+#include "kernel_stdio.h"
 #include "stddef.h"
 #include "string.h"
 #include "mellos/fd.h"
 #include "ramdisk.h"
-#include "mem.h"
 
 #include "mellos/kernel/mount_manager.h"
 

@@ -1,6 +1,8 @@
 #pragma once
 
 #include "stdint.h"
+#include "stdint.h"
+#include "string.h"
 
 // Minimal string interface for kernel code; implementations are provided by mellos_libc
 void reverse(char s[]);
@@ -15,3 +17,6 @@ char* drop_after_last(char delimiter, char* s, _Bool include);
 int memcmp(const void* s1, const void* s2, size_t n);
 void* memchr(const void* s, int c, size_t n);
 void* memmove(void* dest, const void* src, size_t n);
+void* memset(void* dest, int val, size_t count);
+void memcp(unsigned char* restrict source, unsigned char* restrict dest, size_t count);
+void *memcpy(void * restrict to, const void * restrict from, uint32_t n);

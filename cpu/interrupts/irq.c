@@ -47,7 +47,7 @@ void clear_pic_mask(uint8_t flag) {
     write_pic_mask();
 }
 
-void irq_install_handler(uint8_t irq, void (*handler)(regs *r)) {
+void irq_install_handler(uint8_t irq, void (*handler)(regs_t *r)) {
     if (irq > 15) { return; }
     clear_pic_mask(irq);
     irq_routines[irq] = (void*)handler;
@@ -103,10 +103,10 @@ void irq_install() {
 	}
 }
 
-extern void _irq_handler(regs* r) {
+extern void _irq_handler(regs_t* r) {
 	currentInterrupts[r->int_no - 32] = 1;
 
-	void (*handler)(regs* r) = irq_routines[r->int_no - 32];
+	void (*handler)(regs_t* r) = irq_routines[r->int_no - 32];
 
 
 	if (handler) {

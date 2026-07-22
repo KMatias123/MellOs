@@ -1,17 +1,14 @@
 #include "dynamic_mem.h"
-#include "assert.h"
 #include "mellos/kernel/kernel.h"
-#include "mem.h"
+#include "string.h"
 #include "memory_area_spec.h"
-#include "paging/paging.h"
+#include "spinlock.h"
 #include "stddef.h"
 #include "stdint.h"
 
-#include "../global/include/errno.h"
-#include "mellos/kernel/kernel_stdio.h"
+#include "kernel_stdio.h"
 #include "paging/frame_allocator.h"
 #include "stdio.h"
-#include "vesa_text.h"
 
 #define MAX_ORDER 26
 #define MIN_ORDER 5
@@ -170,7 +167,7 @@ void* buddy_alloc_internal(size_t size) {
 
 	if (order > MAX_ORDER) {
 		if (!buddy_grow(size + sizeof(Block))) {
-			kfprintf(stderr, "Failed to grow buddy memory\n");
+			kfprintf(kstderr, "Failed to grow buddy memory\n");
 			return NULL;
 		}
 
@@ -188,7 +185,7 @@ void* buddy_alloc_internal(size_t size) {
 
 	if (current_order > MAX_ORDER) {
 		if (!buddy_grow(size + sizeof(Block))) {
-			kfprintf(stderr, "Failed to grow buddy memory\n");
+			kfprintf(kstderr, "Failed to grow buddy memory\n");
 			return NULL;
 		}
 		current_order = order;

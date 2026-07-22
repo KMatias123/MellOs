@@ -1,17 +1,57 @@
-#include "fat.h"
+#pragma once
+#include "filesystems/fat.h"
 
 #include "dynamic_mem.h"
 #include "errno.h"
 #include "mellos/fs.h"
-#include "mellos/kernel/mount_manager.h"
 
 #include "mellos/kernel/kernel.h"
+#include "mellos/kernel/dentry.h"
+#include "fat12_rw.h"
+#include "string.h"
+#include "kernel_stdio.h"
+
+
+fs_type_t fat12_fs_type = {
+	.name = "fat12",
+	.mount = &fat12_mount,
+	.unmount = &fat12_unmount,
+};
+
+super_ops_t fat12_super_ops = {
+	.allocate_inode = NULL,
+	.destroy_inode = NULL,
+	.sync = &fat12_sync,
+	.statfs = &fat12_statfs,
+};
+
+file_ops_t fat12_file_ops = {
+	.read = &fat12_read,
+	.write = &fat12_write,
+	.readdir = fat12_readdir,
+	.truncate = &fat12_truncate,
+	.ioctl = &fat12_ioctl,
+	.mmap = &fat12_mmap,
+};
+
+inode_ops_t fat12_inode_ops = {
+	.create = &fat12_create,
+	.lookup = &fat12_lookup,
+	.mkdir = &fat12_mkdir,
+	.link = NULL,
+	.unlink = NULL,
+	.symlink = NULL,
+};
 
 vfs_mount_t* fat12_mount(block_device_t* block_device, const char* mount_point, void* data) {
 
 	superblock_t* sb = kzalloc(sizeof(superblock_t));
-	const fat_mount_data_t* mount_data = data;
+	fat_mount_data_t* mount_data = kmalloc(sizeof(fat_mount_data_t));
+
+	memcpy(mount_data, data, sizeof(fat_mount_data_t));
+
 	sb->bd = block_device;
+
 	sb->block_size = sb->bd->logical_block_size;
 
 	// i guess this could be just normal kmalloc but in case read_blocks fails
@@ -32,6 +72,12 @@ vfs_mount_t* fat12_mount(block_device_t* block_device, const char* mount_point, 
 
 	sb->private = kmalloc(sizeof(fat_driver_data_t));
 	fat_driver_data_t* driver_data = sb->private;
+
+	if (bs->sectors_per_cluster == 0) {
+		kprintf("no fat found in root fs\n");
+		return NULL;
+	}
+
 	driver_data->total_sectors =
 	    bs->total_sectors_16 == 0 ? bs->total_sectors_32 : bs->total_sectors_16;
 	// todo: detect fat size before this & cast the extension to the structs for fat32
@@ -101,4 +147,20 @@ int fat12_statfs(superblock_t* sb, statfs_t* st) {
 	st->f_ffree = ((fat_driver_data_t*)sb->private)->free_inodes;
 
 	return 0;
+}
+
+fs_type_t* fat_get_fs_type() {
+	return &fat12_fs_type;
+}
+
+super_ops_t* fat_get_super_ops() {
+	return &fat12_super_ops;
+}
+
+inode_ops_t* fat_get_inode_ops() {
+	return &fat12_inode_ops;
+}
+
+file_ops_t* fat_get_file_ops() {
+	return &fat12_file_ops;
 }

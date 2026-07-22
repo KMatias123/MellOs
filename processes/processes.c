@@ -1,26 +1,20 @@
 #include "autoconf.h"
 #include "processes.h"
 
-#include "spinlock.h"
 #include "dynamic_mem.h"
-#include "mem.h"
-#include "stdio.h"
 
 #include "dynamic_mem.h"
-#include "mem.h"
 #include "stddef.h"
 
-#include "mellos/kernel/kernel_stdio.h"
+#include "kernel_stdio.h"
 #include "mellos/kernel/mount_manager.h"
-#include "mellos/kernel/kernel.h"
+#include "string.h"
 
-#include "spinlock.h"
 #ifdef CONFIG_GFX_VESA
 #include "vesa_text.h"
 #else
 #include "vga_text.h"
 #endif
-#include "mellos/kernel/stdio_devices.h"
 #include "assert.h"
 #include "port_io.h"
 
@@ -169,7 +163,7 @@ void init_scheduler() {
 
 	processes[0] = create_empty_task();
 
-	init_stdio_devices(processes[0]);
+	//init_stdio_devices(processes[0]);
 
 	const vfs_mount_t* proc_mnt = get_proc_mount();
 
@@ -219,7 +213,7 @@ void execute_next() {
 		i++;
 
 		if (i > 1000) {
-			kfprintf(stderr, "No next process found");
+			kfprintf(kstderr, "No next process found");
 			return;
 		}
 	} while (processes[cur_pid] == NULL);
@@ -272,7 +266,7 @@ process_t* schedule_process(void* code, process_t* parent, fd_t* stdin_target, f
 
 	max_pid += 1;
 
-	init_stdio_devices(new_process);
+	//init_stdio_devices(new_process);
 
 	char* stdout_str = kmalloc(128);
 	char* stderr_str = kmalloc(128);

@@ -3,16 +3,12 @@
  * GR.  MODE: 0xA000  *
  *********************/
 
-#include "disk.h"
+#include "mellos/kernel/boot_params.h"
 #include "mellos/kernel/memory_mapper.h"
 #include "mellos/kernel/multiboot_tags.h"
-#include "memory_area_spec.h"
 #include "stddef.h"
 // #include "../utils/error_handling.h"                // read docs!
 #include "colours.h"
-#include "conversions.h"
-
-#include "stdio.h"
 
 #include "allocator.h"
 #include "autoconf.h"
@@ -21,10 +17,8 @@
 #include "cpu/irq.h"
 #include "cpu/isr.h"
 #include "dynamic_mem.h"
-#include "init.h"
-#include "mellos/kernel/kernel_stdio.h"
+#include "kernel_stdio.h"
 #include "paging/paging.h"
-#include "paging/pat.h"
 #include "port_io.h"
 #include "timer.h"
 
@@ -35,19 +29,16 @@
 #include "mellos/kernel/dentry.h"
 #include "mellos/kernel/mount_manager.h"
 #include "mellos/kernel/stdio_devices.h"
-#include "mellos/ramfs.h"
 #include "stdint.h"
+#include "string.h"
 
-#include <mellos/kernel/kernel.h>
-#include <mem.h>
-#include <paging/frame_allocator.h>
-#include <stack_guard.h>
+#include "mellos/kernel/kernel.h"
+#include "paging/frame_allocator.h"
 #ifdef CONFIG_GFX_VESA
 #include "mouse.h"
 #include "vesa.h"
 #include "vesa_text.h"
 #else
-#include "init.h"
 #include "vga_text.h"
 #endif
 
@@ -132,17 +123,17 @@ void khang() {
 #endif
 
 // This function has to be self contained - no dependencies to the rest of the kernel!
-_Noreturn void _kpanic(const char* msg, unsigned int int_no, regs* r);
+_Noreturn void _kpanic(const char* msg, unsigned int int_no, regs_t* r);
 _Noreturn void kpanic_message(const char* msg) {
 	_kpanic(msg, 0, NULL);
 }
 
-extern void kpanic(struct regs* r) {
+extern void kpanic(regs_t* r) {
 	const char* msg = (r->int_no < 32) ? exception_messages[r->int_no] : "Unknown Interrupt";
 	_kpanic(msg, r->int_no, r);
 }
 __attribute__((section(".low.text"))) _Noreturn void _kpanic(const char* msg, unsigned int int_no,
-                                                             regs* r) {
+                                                             regs_t* r) {
 	asm volatile("cli");
 	char buf[256];
 	ksnprintf(buf, 255, "Kernel panic: %s (%i)", msg, int_no);
@@ -294,7 +285,7 @@ __attribute__((section(".entry"))) extern void main(uint32_t multiboot_tags_addr
 
 	mb_tags = *((MultibootTags*)multiboot_tags_addr);
 	if (mb_tags.flags & (1 << 2)) {
-		for (int i = 0; i < 255; ++i) {
+		for (int i = 0; i < BOOT_PARAMS_LENGTH - 1; ++i) {
 			boot_cmdline[i] = ((const char*)mb_tags.cmdline)[i];
 			if (((const char*)mb_tags.cmdline)[i] == 0)
 				break;
@@ -317,11 +308,6 @@ __attribute__((section(".entry"))) extern void main(uint32_t multiboot_tags_addr
 }
 
 __attribute__((section(".text"))) _Noreturn void higher_half_main(uintptr_t multiboot_tags_addr) {
-#ifdef CONFIG_GFX_VESA
-	init_assertions(&clear_screen_col, &set_cursor_pos_raw, &kclear_screen);
-#else
-	init_assertions(&clear_screen_col, &set_cursor_pos_raw, &vga_kclear_screen);
-#endif
 
 #ifdef CONFIG_GFX_VESA
 	fb_addr = get_multiboot_framebuffer_addr(&mb_tags);
@@ -340,6 +326,8 @@ __attribute__((section(".text"))) _Noreturn void higher_half_main(uintptr_t mult
 	kprintf("upper: %X\n", mb_tags.mem_upper);
 
 	kprintf("map:\n");
+
+	cache_boot_params();
 
 	// Truncate to 32-bit physical address space explicitly (we run in 32-bit mode)
 
@@ -387,13 +375,14 @@ __attribute__((section(".text"))) _Noreturn void higher_half_main(uintptr_t mult
 #else
 	clear_screen_col(DEFAULT_COLOUR);
 #endif
-	init_kernel_devices();
+	//init_kernel_devices();
 	init_stdio_files();
 
 	bdev_initialize_blockdevices();
 	init_fs_registry();
 	// ramfs_init();
-	init_vfs();
+
+	init_vfs(param_get_address("root"));
 	dentry_manager_init();
 	asm volatile("sti");
 #ifdef MELLOS_ENABLE_TESTS

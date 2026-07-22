@@ -196,7 +196,7 @@ else ()
     set(DISABLE_SSE 0)
     set(TARGET_CPU "qemu32")
 endif()
-#Add audio backend flags to qemu
+# Add audio backend flags to qemu
 if (AUDIO_BACKEND STREQUAL "PULSEAUDIO")
     list(APPEND ADDITIONAL_QEMU_FLAGS "-audiodev" "pa,id=snd0" "-machine" "pcspk-audiodev=snd0")
     list(APPEND COMMON_DEFS_WITH_D "-DAUDIO_ENABLED")
@@ -287,6 +287,7 @@ add_subdirectory(GUI)
 add_subdirectory(shell)
 add_subdirectory(text_editor)
 add_subdirectory(kernel)
+add_subdirectory(kernel_libc)
 add_subdirectory(memory)
 add_subdirectory(libc)
 add_subdirectory(utils)
@@ -316,6 +317,7 @@ target_link_libraries(
         kernel
         drivers
         shell_objs
+        kernel_libc
         gui_objs
         vesa_objects
         text_editor_objs
@@ -435,6 +437,7 @@ foreach (
         text_editor
         drivers
         mellos_libc
+        kernel_libc
         kernel
         vesa_objects
         memory
@@ -556,7 +559,8 @@ add_custom_target(
 # Run targets (mirroring Makefile)
 add_custom_target(
         run
-        COMMAND qemu-system-i386 -cdrom ${ISO_PATH} -no-reboot -serial file:${CMAKE_BINARY_DIR}/serial.log -enable-kvm -cpu ${TARGET_CPU} -drive file=${TEST_IMG_BINARY},format=raw ${ADDITIONAL_QEMU_FLAGS} -boot order=dc
+        COMMAND qemu-system-i386 -cdrom ${ISO_PATH} -no-reboot -serial file:${CMAKE_BINARY_DIR}/serial.log -enable-kvm -cpu ${TARGET_CPU} -drive file=${TEST_IMG_BINARY},format=raw
+        ${ADDITIONAL_QEMU_FLAGS} -boot order=dc -nic none
         DEPENDS iso hda
         USES_TERMINAL
         COMMENT "Running MellOs in QEMU")
@@ -564,8 +568,8 @@ add_custom_target(
 add_custom_target(
         debug
         COMMAND ${CMAKE_COMMAND} --build . --target debug_symbols
-        COMMAND qemu-system-i386 -cdrom ${ISO_PATH} -m 128M -gdb tcp::1234 -S -vga std -cpu
-        ${TARGET_CPU} -drive file=${TEST_IMG_BINARY},format=raw
+        COMMAND qemu-system-i386 -cdrom ${ISO_PATH} -m 128M -gdb tcp::1234 -S -vga std -cpu ${TARGET_CPU} -drive file=${TEST_IMG_BINARY},format=raw
+        ${ADDITIONAL_QEMU_FLAGS} -boot order=dc -nic none
         DEPENDS iso hda
         USES_TERMINAL
         COMMENT "Running QEMU with gdb stub (-s), std VGA and ${TARGET_CPU} cpu.")

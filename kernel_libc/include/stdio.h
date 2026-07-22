@@ -1,5 +1,4 @@
 #pragma once
-#include "stdint.h"
 
 // Minimal stdio declarations for kernel code; implementation is provided by mellos_libc
 

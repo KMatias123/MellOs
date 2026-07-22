@@ -1,9 +1,8 @@
 #include "mellos/fs.h"
 
 #include "dynamic_mem.h"
-#include "mellos/kernel/kernel_stdio.h"
+#include "kernel_stdio.h"
 #include "mellos/kernel/mount_manager.h"
-#include "mem.h"
 #include "string.h"
 
 // todo: this but it allocates, no need to pass buffer

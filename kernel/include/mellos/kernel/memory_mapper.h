@@ -1,5 +1,5 @@
 #pragma once
-#include "kernel_stdio.h"
+#include "mellos/fs.h"
 #include "multiboot_tags.h"
 
 static char* names[5] = {"Available", "Reserved", "ACPI reclaimable", "NVS", "Bad RAM"};
@@ -22,4 +22,4 @@ MemoryArea map_memory();
 /**
  * Prints the bootloader-provided physical memory map to the specified stream
  */
-void dump_memory_map(FILE* stream);
+void dump_memory_map(file_t* stream);

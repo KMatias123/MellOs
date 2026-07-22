@@ -1,5 +1,4 @@
 #pragma once
-#include "mellos/kernel/kernel.h"
 #include "mellos/fs.h"
 
 #define PROCFS_NAME "procfs"

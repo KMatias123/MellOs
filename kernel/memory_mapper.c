@@ -3,14 +3,12 @@
 #include "stdbool.h"
 #include "stdint.h"
 
-#include "mellos/kernel/kernel_stdio.h"
+#include "kernel_stdio.h"
 #include "mellos/kernel/multiboot_tags.h"
-#include "memory_area_spec.h"
 
 #include "dynamic_mem.h"
-#include "mem.h"
 
-#include "vesa.h"
+#include "string.h"
 
 MultibootTags* multiboot_tags_local = NULL;
 void* framebuffer_addr_local = NULL;
@@ -215,7 +213,7 @@ MemoryArea map_memory() {
 	return (MemoryArea){base_mem, len_mem};
 }
 
-void dump_memory_map(FILE* stream) {
+void dump_memory_map(file_t* stream) {
 	if (!(CHECK_FLAG(mb1_cache.flags, 6) && mb1_cache.mmap_copy && mb1_cache.mmap_length)) {
 		kfprintf(stream, "meminfo: memory map not available (bit 6 unset or not copied)\n");
 		kfprintf(stream, "flags=0x%08x, mmap_length=0x%x, cached=%s\n", (unsigned)mb1_cache.flags,

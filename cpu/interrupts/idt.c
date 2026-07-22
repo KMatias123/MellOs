@@ -1,8 +1,6 @@
 // INTERRUPT DESCRIPTOR TABLE
 //(Shamelessely stolen | Adapted) from http://www.osdever.net/
 
-#include "mem.h"
-
 struct idt_entry // IDT structure
 {
 	unsigned short base_lo;

@@ -3,11 +3,8 @@
 /// Public domain as of 05-10-25 (dd-mm-yy)
 #include "string.h"
 #include "autoconf.h"
-#include "cpu/cpuid.h"
-#include "cpu/irq.h"
 #include "stddef.h"
 #include "stdint.h"
-#include "mem.h"
 
 #define _full_mem_prot_start()                                                                     \
 	{                                                                                              \

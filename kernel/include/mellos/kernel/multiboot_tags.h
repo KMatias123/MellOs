@@ -44,7 +44,7 @@
 110-115 | color_info        |
         +-------------------+ */
 
-#include "../../../../global/include/stdint.h"
+#include "stdint.h"
 
 #ifndef CHECK_FLAG
 #define CHECK_FLAG(flags,bit)   ((flags) & (1 << (bit)))

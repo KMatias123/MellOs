@@ -4,7 +4,7 @@
 #include "mellos/ramfs.h"
 #include "processes.h"
 #include "string.h"
-#include "mellos/kernel/kernel_stdio.h"
+#include "kernel_stdio.h"
 
 fd_t open_file_descriptors[FD_MAX_TOTAL];
 
@@ -160,5 +160,5 @@ int close_file_descriptor(fd_t* file) {
 }
 
 fd_t* get_file_descriptor(int fd) {
-	return &open_file_descriptors[fd];
+	return &open_file_descriptors[fd % MAX_OPEN_FILES];
 }

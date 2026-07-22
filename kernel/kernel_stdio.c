@@ -1,8 +1,7 @@
-#include "mellos/kernel/kernel_stdio.h"
+#include "kernel_stdio.h"
 #include "autoconf.h"
 #include "colours.h"
 #include "errno.h"
-#include "mellos/kernel/streams.h"
 #include "processes.h"
 #include "stdio.h"
 #include "string.h"
@@ -20,43 +19,6 @@ struct va_wrap {
 extern bool scheduler_active;
 extern file_t kernel_stdout_device;
 extern file_t kernel_stdin_device;
-
-static file_t* get_device_from_stream(FILE* stream) {
-	if (!stream) {
-		return NULL;
-	}
-
-	if (stream->device) {
-		return stream->device;
-	}
-
-	if (!scheduler_active) {
-		if (stream->fd == 1 || stream->fd == 2) {
-			return &kernel_stdout_device;
-		} else if (stream->fd == 0) {
-			return &kernel_stdin_device;
-		} else {
-			return NULL;
-		}
-	}
-
-	process_t* proc = get_current_process();
-
-	if (!proc) {
-		return NULL;
-	}
-
-	switch (stream->fd) {
-	case 0:
-		return proc->stdin_device;
-	case 1:
-		return proc->stdout_device;
-	case 2:
-		return proc->stderr_device;
-	default:
-		return NULL;
-	}
-}
 
 static void append_char(char** buf, size_t* remaining, char c) {
 	if (*remaining > 1) {
@@ -209,15 +171,14 @@ int32_t ksnprintf(char* buf, size_t size, const char* fmt, ...) {
 	return ret;
 }
 
-static int32_t write_to_stream(FILE* __restrict stream, const char* __restrict s, uint32_t len) {
+static int32_t write_to_stream(file_t* __restrict stream, const char* __restrict s, uint32_t len) {
 	if (!s || len == 0)
 		return 0;
 
 	WriteLock(&stream->lock, get_current_pid());
 
-	file_t* dev = get_device_from_stream(stream);
-	if (dev && dev->ops && dev->ops->write) {
-		int written = dev->ops->write(dev, (void*)s, (int)len, 0);
+	if (stream && stream->ops && stream->ops->write) {
+		int written = stream->ops->write(stream, (void*)s, (int)len, 0);
 		WriteUnlock(&stream->lock);
 		return written < 0 ? -1 : written;
 	}
@@ -227,7 +188,7 @@ static int32_t write_to_stream(FILE* __restrict stream, const char* __restrict s
 	return (int32_t)len;
 }
 
-int32_t kfputs(const char* __restrict s, FILE* __restrict stream) {
+int32_t kfputs(const char* __restrict s, file_t* __restrict stream) {
 	if (stream == NULL) {
 		return -EINVAL;
 	}
@@ -235,7 +196,7 @@ int32_t kfputs(const char* __restrict s, FILE* __restrict stream) {
 	return write_to_stream(stream, s, len);
 }
 
-int32_t kfprintf(FILE* stream, const char* format, ...) {
+int32_t kfprintf(file_t* stream, const char* format, ...) {
 	va_list va;
 	va_start(va, format);
 	char buf[256];
@@ -245,7 +206,7 @@ int32_t kfprintf(FILE* stream, const char* format, ...) {
 		return rval;
 	return write_to_stream(stream, buf, (uint32_t)rval);
 }
-extern FILE* kstdout;
+extern file_t* kstdout;
 int32_t kputs(const char* s) {
 	return kfputs(s, kstdout);
 }

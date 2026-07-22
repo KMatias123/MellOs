@@ -1,8 +1,5 @@
 #pragma once
-#include "spinlock.h"
-#include "stdint.h"
-
-typedef struct _FILE FILE; // NOLINT(*-reserved-identifier)
+#include "mellos/fs.h"
 
 typedef struct {
 	/**
@@ -16,7 +13,7 @@ typedef struct {
 	 * @param size   Number of bytes to write from the buffer.
 	 * @return Number of bytes successfully written.
 	 */
-	size_t (*write)(FILE* stream, const char* s, size_t size);
+	size_t (*write)(file_t* stream, const char* s, size_t size);
 	/**
 	 * @brief Function pointer for reading data from a stream.
 	 *
@@ -30,7 +27,7 @@ typedef struct {
 	 * @return       Number of bytes successfully read, which may be less than `size`
 	 *               depending on availability, or zero to indicate end-of-stream.
 	 */
-	size_t (*read)(FILE* stream, char* s, size_t size);
+	size_t (*read)(file_t* stream, char* s, size_t size);
 	/**
 	 * @brief Pointer to a function handling stream buffer flushing.
 	 *
@@ -42,7 +39,7 @@ typedef struct {
 	 * @return The number of bytes successfully flushed, or implementation-defined behavior
 	 * in case of an error.
 	 */
-	size_t (*flush)(FILE* stream);
+	size_t (*flush)(file_t* stream);
 	/**
 	 * @brief Function pointer for closing a file stream.
 	 *
@@ -51,28 +48,9 @@ typedef struct {
 	 * @param stream Pointer to the `FILE` stream to close.
 	 * @return 0 on success, or an error code.
 	 */
-	size_t (*close)(FILE* stream);
+	size_t (*close)(file_t* stream);
 } stream_ops_t;
 
-/**
- * @struct _FILE
- * @brief I/O stream abstraction.
- *
- * Links `stream_ops_t` operations with a file descriptor and optional device.
- * Uses `rwlock_t` for thread-safe concurrent access.
- *
- * @typedef FILE
- * @field ops    Polymorphic operations (read, write, flush, close).
- * @field lock   Synchronization primitive for thread-safety.
- * @field fd     File descriptor (0=stdin, 1=stdout, 2=stderr, etc.).
- * @field device Optional pointer to low-level `file_t` device/source.
- */
-typedef struct _FILE { // NOLINT(*-reserved-identifier)
-	stream_ops_t* ops;
-	rwlock_t lock;
-	int fd;       // Which stream (0=stdin, 1=stdout, 2=stderr)
-	void* device; // Optional device pointer
-} FILE;
 
 /**
  * @brief Writes data to a stream.
@@ -81,7 +59,7 @@ typedef struct _FILE { // NOLINT(*-reserved-identifier)
  * @param size   Bytes to write.
  * @return Number of bytes written.
  */
-size_t kstream_write(FILE* stream, const char* s, size_t size);
+size_t kstream_write(file_t* stream, const char* s, size_t size);
 
 /**
  * @brief Reads data from a stream.
@@ -90,18 +68,18 @@ size_t kstream_write(FILE* stream, const char* s, size_t size);
  * @param size   Bytes to read.
  * @return Number of bytes read.
  */
-size_t kstream_read(FILE* stream, char* s, size_t size);
+size_t kstream_read(file_t* stream, char* s, size_t size);
 
 /**
  * @brief Flushes a stream's buffer.
  * @param stream `FILE` stream to flush.
  * @return Number of bytes flushed.
  */
-size_t kstream_flush(FILE* stream);
+size_t kstream_flush(file_t* stream);
 
 /**
  * @brief Closes a stream.
  * @param stream `FILE` stream to close.
  * @return 0 on success, or an error code.
  */
-size_t kstream_close(FILE* stream);
+size_t kstream_close(file_t* stream);

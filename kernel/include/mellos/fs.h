@@ -1,5 +1,6 @@
 #pragma once
 #include "block_device.h"
+#include "spinlock.h"
 #include "statfs.h"
 
 #define S_IFMT 00170000  /* File type mask */
@@ -256,6 +257,7 @@ struct file {
 	file_ops_t* ops;
 
 	uint64_t position;
+	rwlock_t lock;
 	void* private; /* FS-specific per-open data */
 };
 
@@ -290,3 +292,5 @@ inode_t* get_inode_from_path_relative(inode_t* inode, const char* path);
 inode_t* get_inode_from_path(const char* path);
 
 bool free_dentry(dentry_t* dentry);
+
+superblock_t* create_superblock(block_device_t* blockdevice, char* mount_point, fs_type_t* fs);

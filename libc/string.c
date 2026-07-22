@@ -5,9 +5,12 @@
  * StringStartsWith: returns true if s starts with t (max len 80)  *
  ******************************************************************/
 
-#include "dynamic_mem.h"
-#include "include/assert.h"
-#include "include/stddef.h"
+#include "stdint.h"
+#include "assert.h"
+#include "stddef.h"
+#include "string.h"
+#include "stdbool.h"
+#include "stdlib.h"
 
 uint32_t strlen(const char* s) {
 	uint32_t res;
@@ -53,7 +56,7 @@ bool string_starts_with(char* s, char* prefix) {
 char* str_decapitate(char* s, uint32_t n) {
 	size_t len = strlen(s);
 	// fixme: libc-side malloc
-	char* res = kmalloc(len - n + 1);
+	char* res = malloc(len - n + 1);
 
 	if (n >= len)
 		res[0] = 0;
@@ -69,7 +72,7 @@ char* strdup(const char* s) {
 	if (s == NULL)
 		return NULL;
 	// fixme: libc-side malloc
-	char* res = kmalloc(strlen(s) + 1);
+	char* res = malloc(strlen(s) + 1);
 	strcpy(res, s);
 	return res;
 }

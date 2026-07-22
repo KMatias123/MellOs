@@ -7,11 +7,11 @@
 #else
 #include "vga_text.h"
 #endif
-#include "conversions.h"
 #include "cpu/idt.h"
 #include "cpu/irq.h"
 #include "keyboard.h"
 #include "processes.h"
+#include "timer.h"
 
 volatile uint32_t timer_ticks = 0;
 int seconds = 0;
@@ -19,8 +19,7 @@ volatile uint16_t current_hz = 0;
 
 extern bool keyboard_enabled;
 
-void timer_phase(uint16_t hz)
-{
+void timer_phase(uint16_t hz) {
 	irqflags_t irqf = local_irq_save_and_cli();
 	current_hz = hz;
 	uint32_t div32 = 1193180u / (hz ? hz : 1u);
@@ -32,7 +31,7 @@ void timer_phase(uint16_t hz)
 	local_irq_restore(irqf);
 }
 
-void timer_handler(regs* r) {
+void timer_handler(regs_t* r) {
 	/* Increment our 'tick count' */
 	timer_ticks++;
 

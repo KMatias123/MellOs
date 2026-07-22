@@ -46,6 +46,12 @@ bool process_memory_remove_page(process_page_list_t* page_list, uintptr_t page_a
 bool process_memory_owns_page(const process_page_list_t* page_list, uintptr_t page_addr);
 
 /**
+ * Checks if the area of memory is in any of the pages, does not check across page borders
+ * todo: check across page borders
+ */
+bool process_memory_owns(const process_page_list_t* page_list, uintptr_t addr_start, uintptr_t addr_end);
+
+/**
  * Get the number of pages owned by a process
  */
 size_t process_memory_get_page_count(const process_page_list_t* page_list);

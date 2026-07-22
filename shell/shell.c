@@ -3,11 +3,13 @@
 
 #include "linked_list.h"
 
+#include "mellos/kernel/kernel.h"
+#include "mellos/ramfs.h"
 #include "processes.h"
 
 #include "stddef.h"
 
-#include "mellos/kernel/kernel_stdio.h"
+#include "kernel_stdio.h"
 
 #include "mellos/kernel/mount_manager.h"
 #ifdef CONFIG_GFX_VESA
@@ -56,8 +58,15 @@ void add_filewrite_task(char* str, char* filename, uint32_t len) {
 }
 
 void load_shell() {
-	current_dir = get_root_mount()->root;
-	refreshShell();
+	if (get_root_mount() == NULL) {
+		kfprintf(kstderr, "root mount is null");
+
+		kpanic_message("root mount is null");
+	} else {
+		current_dir = get_root_mount()->root;
+	}
+
+	refresh_shell();
 	shell_tasks.size = 1000;
 	shell_tasks.array = kmalloc(shell_tasks.size);
 	shell_tasks.top = 0;
@@ -172,7 +181,7 @@ void load_shell() {
 	return;
 }
 
-void refreshShell() {
+void refresh_shell() {
 	while (current_dir == NULL) {
 		__builtin_ia32_pause();
 	}
@@ -197,5 +206,5 @@ void parseCommand() {
 	}
 
 	// SetCursorPosRaw(1920);
-	refreshShell();
+	refresh_shell();
 }

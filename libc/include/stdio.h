@@ -2,9 +2,17 @@
 
 #include "stddef.h"
 #include "stdint.h"
-#include "circular_queue.h"
 // File structure definition
-struct _FILE; typedef struct _FILE FILE;
+typedef struct _FILE {
+    char* read_end;
+    char* write_end;
+    char* read_base;
+    char* write_base;
+
+    const char mode;
+    char* filename;
+    uint32_t fd;
+} FILE;
 
 // File position type
 typedef struct _fpos_t {

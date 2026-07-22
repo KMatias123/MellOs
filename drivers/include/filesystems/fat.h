@@ -1,6 +1,5 @@
 #pragma once
 #include "mellos/fs.h"
-#include "fat12_rw.h"
 
 #define FAT12_NAME "fat12"
 #define FAT12_IDENTIFIER 0xfa412
@@ -13,44 +12,10 @@ vfs_mount_t* fat12_mount(block_device_t* block_device, const char* mount_point, 
 int fat12_unmount(vfs_mount_t* mount);
 int fat12_sync(superblock_t* sb);
 int fat12_statfs(superblock_t* sb, statfs_t* st);
-
-fs_type_t fat12_fs_type = {
-	.name = "fat12",
-	.mount = &fat12_mount,
-	.unmount = &fat12_unmount,
-};
-
-super_ops_t fat12_super_ops = {
-	.allocate_inode = NULL,
-	.destroy_inode = NULL,
-	.sync = &fat12_sync,
-	.statfs = &fat12_statfs,
-};
-
-file_ops_t fat12_file_ops = {
-	.read = &fat12_read,
-	.write = &fat12_write,
-	.readdir = fat12_readdir,
-	.truncate = &fat12_truncate,
-	.ioctl = &fat12_ioctl,
-	.mmap = &fat12_mmap,
-};
-
-inode_ops_t fat12_inode_ops = {
-	.create = &fat12_create,
-	.lookup = &fat12_lookup,
-	.mkdir = &fat12_mkdir,
-	.link = NULL,
-	.unlink = NULL,
-	.symlink = NULL,
-};
-
 typedef struct {
 	_Bool is_root;
 	dentry_t* parent;
 } fat_mount_data_t;
-
-
 
 typedef enum { FAT_TYPE_12, FAT_TYPE_16, FAT_TYPE_32 } fat_type_t;
 // https://academy.cba.mit.edu/classes/networking_communications/SD/FAT.pdf
@@ -143,4 +108,9 @@ typedef struct {
 	fat_bfb_t* bfb;
 } fat_driver_data_t;
 
+
 fat_type_t detect_fat_type(const fat_bfb_t* bfb);
+fs_type_t* fat_get_fs_type();
+super_ops_t* fat_get_super_ops();
+file_ops_t* fat_get_file_ops();
+inode_ops_t* fat_get_inode_ops();

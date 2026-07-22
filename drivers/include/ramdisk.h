@@ -1,5 +1,6 @@
 #pragma once
-#include "mellos/fs.h"
+#include "stdint.h"
+#include "mellos/block_device.h"
 /**
  * Since this blocks us from setting driver_data to disk_device_t we just include it here
  */
@@ -20,4 +21,4 @@ typedef struct {
  * @return The block device representing the ramdisk - NULL on failure
  */
 block_device_t* ramdisk_create(const char* name, void* base, uint32_t num_blocks, uint32_t block_size);
-block_device_t* get_block_device_by_name(const char* name);
+block_device_t* get_block_device_by_name(char* name);

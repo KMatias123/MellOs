@@ -1,4 +1,5 @@
 #include "autoconf.h"
+#include "stddef.h"
 #ifdef CONFIG_GFX_VESA
 #include "vesa_text.h"
 #else
@@ -13,7 +14,7 @@
 #define FDEF(name) void name(const char* s)
 
 FDEF(diskinfo){
-    identify_ata(0xA0);
+    identify_ata(0xA0, NULL);
     // disk_info* res = kmalloc (sizeof(disk_info));
     // if (!res) {
     //     kprint("info allocation failed");

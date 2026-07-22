@@ -1,5 +1,5 @@
 #pragma once
-
+#define __MELLOS_ASSERT__
 // Formatted output
 void __assert_fail(const char* expr, const char* file, unsigned int line); // NOLINT(*-reserved-identifier)
 void __assert_fail_msg(const char* expr, const char* msg, const char* file, unsigned int line); // NOLINT(*-reserved-identifier)

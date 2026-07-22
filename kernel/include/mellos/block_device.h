@@ -1,4 +1,5 @@
 #pragma once
+#include "disk.h"
 #include "stddef.h"
 #include "stdint.h"
 
@@ -98,6 +99,7 @@ typedef struct disk_device {
 	 *
 	 */
 	linked_list_t* partitions;
+	disk_info_t* disk_info;
 } disk_device_t;
 
 typedef struct {
@@ -131,7 +133,7 @@ int bdev_register(block_device_t* dev);
 /**
  * Look up a block device by name, e.g., "sda", "sda1".
  */
-block_device_t* bdev_lookup(const char* name);
+block_device_t* bdev_lookup(char* name);
 
 /**
  * Get all of the detected block devices

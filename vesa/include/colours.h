@@ -1,4 +1,6 @@
 #pragma once
+#include "autoconf.h"
+#include "graphics_types.h"
 #define BLUE_COLOUR 0x9f
 #define DEFAULT_COLOUR 0x0F
 #define BAR_COLOUR 0x1E
@@ -10,10 +12,8 @@
 #ifndef TYPEDEF_H
 #include "graphics_types.h"
 #endif
-
 VESA_Colour vga2vesa(Colour col);
 void generate_vga_palette(VESA_Colour palette[256]);
-
 #define VESA_BLACK (VESA_Colour){0, 0, 0, 0xFF}
 #define VESA_WHITE (VESA_Colour){0xFF, 0xFF, 0xFF, 0xFF}
 #define VESA_RED (VESA_Colour){0, 0, 0xFF, 0xFF}

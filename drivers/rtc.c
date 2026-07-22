@@ -3,7 +3,7 @@
 #include "rtc.h"
 #include "port_io.h"
 
-#include "mellos/kernel/kernel_stdio.h"
+#include "kernel_stdio.h"
 
 uint8_t bcd_to_bin(uint8_t bcd) {
     return (bcd & 0x0F) + ((bcd >> 4) * 10);

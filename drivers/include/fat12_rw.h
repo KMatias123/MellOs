@@ -1,5 +1,7 @@
 #pragma once
-#include "mellos/kernel/mount_manager.h"
+#include "mellos/fs.h"
+#include "stdint.h"
+#include "stdbool.h"
 
 typedef struct {
 	bool is_root;
