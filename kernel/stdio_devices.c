@@ -95,7 +95,7 @@ void init_stdio_files() {
 	kstdin = kmalloc(sizeof(file_t));
 	kstdout = kmalloc(sizeof(file_t));
 	kstderr = kmalloc(sizeof(file_t));
-	assert_msg(kstdin, "kstdin is null");
-	assert_msg(kstderr, "kstderr is null");
-	assert_msg(kstdout, "kstdout is null");
+	kassert_msg(kstdin, "kstdin is null");
+	kassert_msg(kstderr, "kstderr is null");
+	kassert_msg(kstdout, "kstdout is null");
 }

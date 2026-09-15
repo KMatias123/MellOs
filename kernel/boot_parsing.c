@@ -9,7 +9,7 @@
 char value[BOOT_PARAMS_LENGTH];
 
 char* cmdline_get(const char* key, char* fallback) {
-	const size_t key_len = strlen(key);
+	const size_t key_len = kstrlen(key);
 
 	char* p = boot_cmdline;
 	int key_start_offset = 0;
@@ -26,7 +26,7 @@ char* cmdline_get(const char* key, char* fallback) {
 		}
 
 		if (*p == '=') {
-			if (memcmp(boot_cmdline + key_start_offset, key, key_len) == 0) {
+			if (kmemcmp(boot_cmdline + key_start_offset, key, key_len) == 0) {
 				value_start = p + 1;
 			}
 		} else if (*p == ' ') {
@@ -51,17 +51,17 @@ int cache_boot_params() {
 		const char* retval = cmdline_get(p->keyname, p->default_value);
 		switch (p->format) {
 			case PARAM_TYPE_STRING:
-			str_length = strlen(retval);
-			memmove(&(boot_params_storage[boot_params_storage_iterator]), retval, str_length);
+			str_length = kstrlen(retval);
+			kmemmove(&(boot_params_storage[boot_params_storage_iterator]), retval, str_length);
 			p->value = &(boot_params_storage[boot_params_storage_iterator]);
 			boot_params_storage_iterator += str_length;
 		break;
 			case PARAM_TYPE_BOOL:
-			if (strcmp(retval, "true") == 0) {
+			if (kstrcmp(retval, "true") == 0) {
 				boot_params_storage[boot_params_storage_iterator] = true;
 				p->value = &(boot_params_storage[boot_params_storage_iterator]);
 				boot_params_storage_iterator++;
-			} else if (strcmp(retval, "false") == 0) {
+			} else if (kstrcmp(retval, "false") == 0) {
 				boot_params_storage[boot_params_storage_iterator] = false;
 				p->value = &(boot_params_storage[boot_params_storage_iterator]);
 				boot_params_storage_iterator++;
@@ -88,7 +88,7 @@ void* param_get_address(const char* key) {
 	int i = 0;
 	do {
 		p = &(boot_params[i]);
-		if (strcmp(p->keyname, key) == 0) {
+		if (kstrcmp(p->keyname, key) == 0) {
 			if (p->value == NULL) {
 				return p->default_value;
 			} else {

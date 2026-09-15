@@ -54,7 +54,7 @@ shellfunction CMDs[] = {
 };
 
 void helpCMD(const char* s) {
-	if (strlen(s) == 0) {
+	if (kstrlen(s) == 0) {
 		kprint("List of commands:\n");
 		for (int i = 0; i < sizeof(CMDs) / sizeof(shellfunction); i++) {
 			kprint("   ");
@@ -89,7 +89,7 @@ shellfunction shellf(void (*Fptr)(const char*), char* Alias, char* Help) {
 
 shellfunction* TryGetCMD(char* cmdbuf) {
 	for (int x = 0; x < sizeof(CMDs) / sizeof(shellfunction); x++) {
-		if (strcmp(cmdbuf, CMDs[x].alias) == 0) {
+		if (kstrcmp(cmdbuf, CMDs[x].alias) == 0) {
 			return &CMDs[x];
 		}
 	}

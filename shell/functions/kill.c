@@ -11,7 +11,7 @@
 #endif
 
 void kill(const char* s) {
-    if (strlen(s) == 0) {
+    if (kstrlen(s) == 0) {
         kprint("Usage: kill [PID]\n");
         kprint("Kills the process with the specified PID\n");
         return;

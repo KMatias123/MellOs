@@ -528,7 +528,7 @@ int vsnprintf(char* dest, size_t dsize, const char* fmt, va_list va) {
 	while (*fmt) {
 		if (*fmt != '%') {
 			if (dsize > 1) {
-				*dest++ = *fmt;
+				if (dest != NULL) *dest++ = *fmt;
 				dsize--;
 			}
 			fmt++;
@@ -554,7 +554,7 @@ int vsnprintf(char* dest, size_t dsize, const char* fmt, va_list va) {
 	}
 
 	va_end(wrap.va);
-	if (dsize)
+	if (dsize && dest != NULL)
 		*dest = '\0';
 	return char_count;
 fail:

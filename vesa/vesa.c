@@ -282,7 +282,7 @@ void _blit(Framebuffer* srcptr, Framebuffer* destptr, int x, int y, uint32_t wid
 	} else {
 		// TODO: Optimization if pitches are equal
 		for (uint32_t row = 0; row < height; row++) {
-			memcp(srcptr->fb + src_offset, destptr->fb + dest_offset, width * 4);
+			kmemcp(srcptr->fb + src_offset, destptr->fb + dest_offset, width * 4);
 			dest_offset += destptr->pitch;
 			src_offset += srcptr->pitch;
 		}

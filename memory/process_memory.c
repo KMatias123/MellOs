@@ -48,7 +48,7 @@ bool process_memory_add_page(process_page_list_t* page_list, uintptr_t page_addr
 		}
 
 		if (page_list->pages != NULL) {
-			memcp((unsigned char*)page_list->pages, (unsigned char*)new_pages,
+			kmemcp((unsigned char*)page_list->pages, (unsigned char*)new_pages,
 			      page_list->page_count * sizeof(uintptr_t));
 			// todo: no kfree for processes
 
@@ -151,7 +151,7 @@ bool process_memory_add_region(process_page_list_t* page_list, uintptr_t base, s
 		process_region_t* new_regions = kmalloc(new_cap * sizeof(process_region_t));
 		if (!new_regions) return false;
 		if (page_list->regions) {
-			memcp((unsigned char*)page_list->regions, (unsigned char*)new_regions,
+			kmemcp((unsigned char*)page_list->regions, (unsigned char*)new_regions,
 			      page_list->region_count * sizeof(process_region_t));
 			kfree(page_list->regions);
 		}

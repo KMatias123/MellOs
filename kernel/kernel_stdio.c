@@ -29,8 +29,9 @@ static void append_char(char** buf, size_t* remaining, char c) {
 }
 
 static void append_str(char** buf, size_t* remaining, const char* s) {
-	while (*s)
+	while (*s) {
 		append_char(buf, remaining, *s++);
+    }
 }
 
 static void append_uint32(char** buf, size_t* remaining, uint32_t val, int base, int uppercase,
@@ -192,7 +193,7 @@ int32_t kfputs(const char* __restrict s, file_t* __restrict stream) {
 	if (stream == NULL) {
 		return -EINVAL;
 	}
-	const uint32_t len = strlen(s);
+	const uint32_t len = kstrlen(s);
 	return write_to_stream(stream, s, len);
 }
 

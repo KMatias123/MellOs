@@ -4,7 +4,7 @@
 #include "kernel_stdio.h"
 
 int unwrap (maybe_int x){
-    assert(x.is_some);
+    kassert(x.is_some);
 
     return x.val;
 }

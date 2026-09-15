@@ -1,7 +1,9 @@
+#include "assert.h"
 #include "disk.h"
 #include "filesystems/fat.h"
 #include "linked_list.h"
 #include "mellos/block_device.h"
+#include "mellos/fd.h"
 #include "mellos/fs.h"
 #include "mellos/kernel/mount_manager.h"
 #include "ramdisk.h"
@@ -22,6 +24,8 @@ linked_list_t* block_devices;
 #define RAMDISK_BLOCK_SIZE 4096
 #define RAMDISK_BLOCK_COUNT 2560
 
+extern vfs_mount_t* root_mnt;
+
 int create_partition_device(block_device_t* parent, int index, uint64_t start_lba,
                             uint64_t num_sectors, uint8_t type) {
 	partition_t* p = kmalloc(sizeof(partition_t));
@@ -32,6 +36,7 @@ int create_partition_device(block_device_t* parent, int index, uint64_t start_lb
 	block_device_t* dev = kmalloc(sizeof(block_device_t));
 	// todo: dynamic strings
 	dev->name = kmalloc(25);
+	p->parent = dev;
 
 	if (parent->driver_data == NULL) {
 		kpanic_message("create_partition_device: no driver data");
@@ -56,6 +61,7 @@ int create_partition_device(block_device_t* parent, int index, uint64_t start_lb
 
 	ksnprintf(dev->name, 25, "%sp%d", parent->name, index);
 	dev->logical_block_size = parent->logical_block_size;
+	dev->start_lba = p->start_lba;
 	dev->num_blocks = num_sectors;
 	dev->ops = kmalloc(sizeof(block_device_ops));
 	dev->flags |= BLOCK_DEVICE_FLAG_PARTITION;
@@ -71,7 +77,7 @@ int create_partition_device(block_device_t* parent, int index, uint64_t start_lb
 
 block_device_t* register_disk(disk_info_t* diskinfo) {
 	if (diskinfo->drive == PATA_CHS) {
-		kfprintf(kstderr, "chs is unsupported\n");
+		kprintf("chs is unsupported\n");
 		return NULL;
 	}
 	block_device_t* block_device = kzalloc(sizeof(block_device_t));
@@ -127,7 +133,7 @@ int bdev_initialize_blockdevices() {
 	for (int i = 0; i < 4; i++) {
 		mbr_partition_entry_t* entry = &(mbr->entries[i]);
 		if (entry->type == 0 || entry->lba_count == 0) {
-			kprintf("discarding partition: \nlba_start: %u\nlba_count: %u\ntype: %u\n", entry->lba_start, entry->lba_count, entry->type);
+			kprintf("discarding partition, it seems to be unused: \nlba_start: %u\nlba_count: %u\ntype: %u\n", entry->lba_start, entry->lba_count, entry->type);
 			continue;
 		}
 		create_partition_device(primarybd, i, entry->lba_start, entry->lba_count, entry->type);
@@ -135,22 +141,17 @@ int bdev_initialize_blockdevices() {
 
 	block_device_t* root_bd = get_block_device_by_name("hd0p1");
 	superblock_t* root_sb = kzalloc(sizeof(superblock_t));
+
+	kassert_msg(root_bd != NULL, "root_bd is NULL");
+	kassert_msg(root_sb != NULL, "root_sb is NULL");
+
 	root_sb->bd = root_bd;
 	root_sb->ops = fat_get_super_ops();
 	root_sb->fs = fat_get_fs_type();
-	vfs_mount_t* root_mnt = mount(root_sb, root_bd, "/");
+	root_mnt = mount(root_sb, root_bd, "/");
 
-	if (!root_mnt) {
-		asm("hlt");
-	}
+	kassert_msg(root_mnt != NULL, "root_mnt is NULL");
 
-	void* ramdisk = kmalloc(RAMDISK_BLOCK_SIZE * RAMDISK_BLOCK_COUNT);
-
-	block_device_t* ramdisk_device =
-	    ramdisk_create("ram0", ramdisk, RAMDISK_BLOCK_COUNT, RAMDISK_BLOCK_SIZE);
-
-	create_partition_device(ramdisk_device, 0, 0, RAMDISK_BLOCK_COUNT / 2, 0);
-	create_partition_device(ramdisk_device, 1, RAMDISK_BLOCK_COUNT / 2, RAMDISK_BLOCK_COUNT / 4, 0);
 	return 0;
 }
 
@@ -173,8 +174,13 @@ int bdev_register(block_device_t* dev) {
 	if (dev->name == NULL) {
 		return -EINVAL;
 	}
+	if (dev->ops == NULL) {
+        return -EINVAL;
+	}
+#ifdef MELLOS_DEBUG
 	kprintf("Registering block device %s\n", dev->name);
 	kprintf("flags: %016lu\n", dev->flags);
+#endif
 	SpinLock(&bdev_lock);
 	linked_list_push_back(block_devices, dev);
 	SpinUnlock(&bdev_lock);
@@ -189,7 +195,7 @@ bool filter_function(list_node_t* node, void* name) {
 		return false;
 	}
 	block_device_t bdev = *(block_device_t*)node->data;
-	return strcmp(bdev.name, name) == 0;
+	return kstrcmp(bdev.name, name) == 0;
 }
 
 block_device_t* get_block_device_by_name(char* name) {
@@ -237,19 +243,22 @@ linked_list_t* get_block_devices() {
 
 ssize_t part_read(block_device_t* dev, uint64_t lba, size_t count, void* buffer) {
 	const partition_t* part = dev->driver_data;
-
-	if (lba + count > part->num_sectors) {
+	kassert(part != NULL)
+	kassert(buffer != NULL);
+	kassert(count > 0);
+	if (lba + count > lba + part->num_sectors) {
 		return -1; // EIO
 	}
 
-	return part->parent->ops->read_blocks(part->parent, part->start_lba + lba, count, buffer);
+	return dev->parent->ops->read_blocks(part->parent, lba, count, buffer);
 }
 
 ssize_t part_write(block_device_t* dev, uint64_t lba, size_t count, const void* buffer) {
 	const partition_t* part = dev->driver_data;
-
+	kassert(buffer != NULL);
+	kassert(count > 0);
 	if (lba + count > part->num_sectors)
 		return -1;
 
-	return part->parent->ops->write_blocks(part->parent, part->start_lba + lba, count, buffer);
+	return part->parent->ops->write_blocks(part->parent, lba, count, buffer);
 }

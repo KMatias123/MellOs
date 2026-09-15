@@ -80,7 +80,7 @@ int cqueue_enqueue(CircularQueue* q, void* data, size_t length) {
     //q->buffer[q->write_idx] = data;
     void *tmp = q->buffer[q->write_idx] = kmalloc(length);
 
-    memcpy(tmp, data, length);
+    kmemcpy(tmp, data, length);
     q->write_idx = (q->write_idx + 1) % q->capacity;
     q->size++;
     return 0;

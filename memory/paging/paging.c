@@ -366,9 +366,9 @@ __attribute__((optimize("O0"))) __attribute__((noinline))
 __attribute__((section(".text"))) _Noreturn void
 higher_half_init(MultibootTags* multiboot_addr) {
 
-	memset(page_directories, 0, sizeof(page_directories));
-	memset(heap_page_table, 0, sizeof(heap_page_table));
-	memset(kernel_heap_page_table, 0, sizeof(kernel_heap_page_table));
+	kmemset(page_directories, 0, sizeof(page_directories));
+	kmemset(heap_page_table, 0, sizeof(heap_page_table));
+	kmemset(kernel_heap_page_table, 0, sizeof(kernel_heap_page_table));
 
 	uint32_t heap_pages = HEAP_SIZE / 0x1000; // Calculate actual page count
 
@@ -443,8 +443,8 @@ extern char __bss_pa_end[];
 __attribute__((optimize("O0"))) __attribute__((section(".low.text"))) void
 setup_paging_with_dual_mapping(uintptr_t fb, MultibootTags* multiboot_info_addr) {
 	isrs_install();
-	memset(first_page_table, 0, sizeof(first_page_table));
-	memset(second_page_table, 0, sizeof(second_page_table));
+	kmemset(first_page_table, 0, sizeof(first_page_table));
+	kmemset(second_page_table, 0, sizeof(second_page_table));
 
 	for (int i = 0; i < 1024; i++) {
 		first_page_table[i] = i * 0x1000 | (PT_PRESENT | PT_READWRITE);
@@ -453,7 +453,7 @@ setup_paging_with_dual_mapping(uintptr_t fb, MultibootTags* multiboot_info_addr)
 	// zero page
 	first_page_table[0] = 0;
 
-	memset(base_page_directory_low, 0, sizeof(base_page_directory_low));
+	kmemset(base_page_directory_low, 0, sizeof(base_page_directory_low));
 
 	put_page_table_to_directory(base_page_directory_low, first_page_table, 0,
 	                            PD_PRESENT | PD_READWRITE);

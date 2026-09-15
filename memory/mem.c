@@ -25,7 +25,7 @@
  * @param size How many times to fill the lowest 8 bits of value.
  * @return NULL on failure, dest if value is 0 or success.
  */
-__attribute__((section(".low.text"))) void* memset(void* dest, int value, size_t size) {
+__attribute__((section(".low.text"))) void* kmemset(void* dest, int value, size_t size) {
 	if (!dest)
 		return NULL;
 	if (size == 0)
@@ -76,7 +76,7 @@ static inline int __attribute__((always_inline)) is_aligned16(const void* p) {
 }
 
 /* Copy blocks of memory */
-void memcp(unsigned char* restrict source, unsigned char* restrict dest, size_t count) {
+void kmemcp(unsigned char* restrict source, unsigned char* restrict dest, size_t count) {
 	if (!source || !dest || count == 0)
 		return;
 
@@ -147,7 +147,7 @@ void memcp(unsigned char* restrict source, unsigned char* restrict dest, size_t 
 	}
 }
 
-void* memcpy(void* restrict dest, const void* restrict src, uint32_t size) {
+void* kmemcpy(void* restrict dest, const void* restrict src, uint32_t size) {
 	if (size == 0)
 		return dest;
 

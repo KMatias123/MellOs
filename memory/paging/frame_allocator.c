@@ -62,7 +62,7 @@ void* alloc_frame(bool is_kernel, uint32_t continuous_frames_to_alloc) {
 	if (continuous_frames_to_alloc == 0) {
 		return NULL;
 	}
-
+	kprintf("allocating frames: %u", continuous_frames_to_alloc);
 	uint32_t start_physical_address =
 	    alloc_physical_frames_ranged(is_kernel, continuous_frames_to_alloc);
 
@@ -161,7 +161,7 @@ void init_frame_allocator_range(frame_allocator_t* frame_allocator) {
 		return;
 	}
 
-	memset(frame_allocator->frame_bitmap, 0, frame_allocator->bitmap_size);
+	kmemset(frame_allocator->frame_bitmap, 0, frame_allocator->bitmap_size);
 
 	/*kprintf("Frame allocator init: range [0x%X, 0x%X) (%u - %u frames)\n",
 	        (frame_allocator->start_frame + frame_allocator->offset) * PHYSICAL_FRAME_SIZE,
@@ -360,7 +360,7 @@ void switch_to_dynamic_bitmaps(MemoryArea* mmap) {
 	}
 
 	// For kernel allocator, it stays the same range for now, just migrate bitmap
-	memcpy(new_kernel_bitmap, kernel_frame_allocator.frame_bitmap,
+	kmemcpy(new_kernel_bitmap, kernel_frame_allocator.frame_bitmap,
 	       kernel_frame_allocator.bitmap_size);
 
 	// Update primary allocator

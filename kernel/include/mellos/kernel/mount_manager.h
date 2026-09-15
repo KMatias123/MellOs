@@ -29,7 +29,6 @@ void destroy_fs_registry(void);
 linked_list_t* get_mounts(void);
 linked_list_t* get_registered_filesystems(void);
 
-int dentry_init(dentry_t* dentry, inode_t* inode);
 int dentry_delete(dentry_t* dentry);
 dentry_t* dentry_alloc(dentry_t* parent, char* name);
 vfs_mount_t* get_mount_for_bd(block_device_t* bd);

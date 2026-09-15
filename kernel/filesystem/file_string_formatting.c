@@ -1,3 +1,4 @@
+#include "assert.h"
 #include "mellos/fs.h"
 
 #include "dynamic_mem.h"
@@ -13,8 +14,8 @@ int rebuild_path(inode_t* inode, char** buffer) {
 
 	while (node_i) {
 		*buffer[i++] = '/';
-		str_len = strlen(node_i->dentry->name) - 1; // remove \0
-		if (!memcpy(*buffer + i, node_i->dentry->name, str_len)) {
+		str_len = kstrlen(node_i->dentry->name) - 1; // remove \0
+		if (!kmemcpy(*buffer + i, node_i->dentry->name, str_len)) {
 			return -2;
 		}
 		node_i = inode->parent;
@@ -37,21 +38,22 @@ int rebuild_path(inode_t* inode, char** buffer) {
 inode_t* get_inode_from_path_relative(inode_t* inode, const char* path) {
 
 	size_t offset = 0;
-	inode_t* tmp_inode = kmalloc(sizeof(inode_t));
+	inode_t* tmp_inode;
 	if (path[offset] != '/') {
 		kfprintf(kstderr, "Path must start with \"/\"!\n");
 		return NULL;
 	}
 	offset++;
-
-	char* collected = kmalloc(strlen(path));
+	char* collected = kstrdup(path);
 	while (true) {
 		if (path[offset] == '/') {
 			collected[offset] = '\0';
+
 			inode->ops->lookup(inode, collected, &tmp_inode);
 			inode = tmp_inode;
 			if (inode == NULL) {
 				kfree(collected);
+				kfree(tmp_inode);
 				return NULL;
 			}
 			path += offset;

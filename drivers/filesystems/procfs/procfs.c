@@ -1,7 +1,9 @@
 #include "filesystems/procfs.h"
 #include "dynamic_mem.h"
 #include "errno.h"
+#include "kernel_stdio.h"
 #include "mellos/fs.h"
+#include "mellos/kernel/dentry.h"
 #include "mellos/kernel/mount_manager.h"
 
 vfs_mount_t* procfs_mount(block_device_t* dev, const char* mount_point, void* data);
@@ -10,7 +12,7 @@ int procfs_unmount(vfs_mount_t* mount);
 // #include "mellos/kernel/mount_manager.h"
 
 inode_t* procfs_alloc_inode(superblock_t* sb);
-void procfs_destroy_inode(inode_t* inode);
+int procfs_destroy_inode(inode_t* inode);
 int procfs_sync(superblock_t* sb);
 int procfs_statfs(superblock_t* sb, statfs_t* st);
 
@@ -51,10 +53,11 @@ vfs_mount_t* procfs_mount(block_device_t* dev, const char* mount_point, void* da
 	mnt->sb = sb;
 	sb->root->dentry = dentry_alloc(mnt->root->dentry, (char*)mount_point);
 	sb->root->dentry->inode = sb->root;
-	sb->root->dentry->refcount = 1;
 	sb->root->dentry->parent = mount_data->parent_dentry;
 	sb->ops = &procfs_file_ops;
-
+	dentry_init(mnt->root->dentry, sb->root, (char*)mount_point);
+	//dentry_manager_add((char*)mount_point, sb->root->dentry);
+	kprintf("procfs mounted at %s\n", mount_point);
 	return mnt;
 }
 
@@ -82,11 +85,11 @@ int procfs_sync(superblock_t* sb) {
 	return 0;
 }
 
-void procfs_destroy_inode(inode_t* inode) {
+int procfs_destroy_inode(inode_t* inode) {
 	if (inode->ref_count > 0) {
 		inode->ref_count--;
 		inode->dentry->refcount--;
-		return;
+		return 0;
 	}
 	inode->ref_count--;
 	inode->dentry->refcount--;
@@ -94,6 +97,7 @@ void procfs_destroy_inode(inode_t* inode) {
 	// references to all the dentries are saved in the dcache so we can make the
 	// dentry negative and delete this
 	kfree(inode);
+	return 0;
 }
 
 inode_t* procfs_alloc_inode(superblock_t* sb) {

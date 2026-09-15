@@ -1,8 +1,8 @@
 #include "mellos/kernel/dentry.h"
+#include "assert.h"
 #include "dynamic_mem.h"
-#include "linked_list.h"
+#include "errno.h"
 #include "mellos/fs.h"
-#include "mellos/kernel/kernel.h"
 #include "spinlock.h"
 #include "stddef.h"
 #include "string.h"
@@ -15,13 +15,21 @@ volatile int32_t dentry_lock = 0;
 #define FS_ROOT "/"
 
 void dentry_manager_init() {
-	kprintf("Initializing dentries...");
+	kprintf("Initializing dentries...\n");
 	dentry_map = hash_map_create();
 }
 
 void destroy_dentry(dentry_t* dentry) {
 	kfree(dentry->name);
 	kfree(dentry);
+}
+
+void dentry_manager_add(char* path, dentry_t* entry) {
+	kassert(path);
+	kassert(entry);
+	SpinLock(&dentry_lock);
+	hash_map_put_string(dentry_map, path, entry);
+	SpinUnlock(&dentry_lock);
 }
 
 bool free_dentry(dentry_t* dentry) {
@@ -34,18 +42,24 @@ bool free_dentry(dentry_t* dentry) {
 }
 
 dentry_t* create_dentry(char* name) {
+	kprintf("creating dentry: %s\n", name);
 	dentry_t* de = kmalloc(sizeof(dentry_t));
 
-	de->name = strdup(name);
+	de->name = kstrdup(name);
 	de->refcount = 1;
-	de->inode = get_inode_from_path(de->name);
-	char* tmp_path = strdup(de->name);
+	de->inode = get_inode_from_path(name);
+
+	//if (kstrcmp(name, "/proc") == 0) asm("hlt");
+
+	kassert(de->inode != NULL);
+	char* tmp_path = kstrdup(de->name);
+
 	if (drop_after_last('/', tmp_path, false) == NULL) {
 		kfree(tmp_path);
-		kfprintf(kstderr, "Something went very wrong during string formatting!!!");
+		kprintf("Something went very wrong during string formatting!!!");
 		return NULL;
 	}
-	if (strcmp(tmp_path, FS_ROOT) != 0) {
+	if (kstrcmp(tmp_path, FS_ROOT) != 0) {
 		de->parent = get_or_create_dentry_unsafe(tmp_path);
 	}
 	return de;
@@ -54,15 +68,18 @@ dentry_t* create_dentry(char* name) {
 dentry_t* get_or_create_dentry_unsafe(char* name) {
 
 	if (dentry_map == NULL) {
-		kfprintf(kstderr, "dentry_list not initialized, cannot get dentry\n");
+		kprintf("dentry_list not initialized, cannot get dentry\n");
 		asm("hlt");
 	}
 
 	dentry_t* de = get_by_string(dentry_map, name);
+
+	kprintf("%s\n", name);
 	if (de == NULL) {
 		de = create_dentry(name);
-		hash_map_put(dentry_map, name, de);
+		hash_map_put_string(dentry_map, name, de);
 	}
+	kassert(de != NULL);
 	return de;
 }
 
@@ -96,7 +113,7 @@ void dentry_update() {
 			// todo: Recursively search the children for ones with refcount = 0 if
 			//  the parent's refcount = child count. This is an expensive operation
 			//  but it can be done lazily over time.
-			if (de->refcount == 0 && strcmp(de->name, "/") != 0) {
+			if (de->refcount == 0 && kstrcmp(de->name, "/") != 0) {
 				if (!free_dentry(de)) {
 					kfprintf(kstderr, "Unable to free dentry!");
 				}
@@ -107,9 +124,15 @@ void dentry_update() {
 	}
 }
 
-int dentry_init(dentry_t* dentry, inode_t* inode) {
+int dentry_init(dentry_t* dentry, inode_t* inode, char* path) {
 	inode->dentry = dentry;
 	dentry->refcount = 1;
+	dentry->name = path;
+	if (!dentry->name) {
+		errno = ENOMEM;
+		return -1;
+	}
+	hash_map_put_string(dentry_map, path, dentry);
 	return 0;
 }
 
@@ -125,8 +148,8 @@ dentry_t* dentry_alloc(dentry_t* parent, char* name) {
 	}
 
 	dentry_t* de = kmalloc(sizeof(dentry_t));
+	kassert(de != NULL);
 
-	de->name = strdup(name);
-
+	de->name = kstrdup(name);
 	return de;
 }

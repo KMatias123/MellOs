@@ -15,7 +15,7 @@ ssize_t ramdisk_read(block_device_t* dev, uint64_t lba, size_t count, void* buff
 	const uint8_t* src = (uint8_t*)st->base + lba * st->block_size;
 	const size_t bytes = count * st->block_size;
 
-	memcpy(buffer, src, bytes);
+	kmemcpy(buffer, src, bytes);
 	return (ssize_t)count;
 }
 
@@ -29,7 +29,7 @@ ssize_t ramdisk_write(block_device_t* dev, uint64_t lba, size_t count, const voi
 	uint8_t* dst = (uint8_t*)st->base + lba * st->block_size;
 	const size_t bytes = count * st->block_size;
 
-	memcpy(dst, buffer, bytes);
+	kmemcpy(dst, buffer, bytes);
 	return (ssize_t)count;
 }
 

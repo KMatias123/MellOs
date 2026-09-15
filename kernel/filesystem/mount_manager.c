@@ -1,3 +1,4 @@
+#include "assert.h"
 #include "linked_list.h"
 #include "mellos/fs.h"
 
@@ -20,6 +21,7 @@
 #include "filesystems/fat.h"
 
 #include "ramdisk.h"
+#include <string.h>
 
 // todo: split this file into 2 files, 1 for mounts and 1 for filesystems
 
@@ -60,55 +62,55 @@ vfs_mount_t* get_root_mount() {
 
 // todo: more NULL protection
 bool get_filesystem_filter_function(list_node_t* node, void* filterdata) {
-	if (node == NULL || node->data == NULL) {
-		kfprintf(kstderr, "Invalid node or data in get_file_filter_function\n");
-		asm("hlt\n");
-		return false;
-	}
+	kassert(node != NULL);
+	kassert(node->data != NULL);
 	const vfs_mount_t* mnt = node->data;
-	kprintf("comparing: %s\n", filterdata);
-	if (get_or_create_dentry(filterdata)->inode == NULL) {
+
+	dentry_t* de = get_or_create_dentry(filterdata);
+	kassert(de != NULL);
+	kassert(mnt != NULL);
+	kassert(de->inode != NULL);
+	if (de->inode == NULL) {
+		asm("hlt");
 
 		if (mnt->sb == NULL) {
-			kfprintf(kstderr, "%p sb is null\n", mnt->root);
+			kprintf("%p sb is null\n", mnt->root);
 			return false;
 		}
 
 		if (mnt->root == NULL) {
-			kfprintf(kstderr, "%p root is null\n", mnt);
+			kprintf("%p root is null\n", mnt);
 			return false;
 		}
-		kfprintf(kstderr, "no inode: %s, %s\n", filterdata, mnt->root->dentry->name);
+		kprintf("no inode: %s, %s\n", filterdata, mnt->root->dentry->name);
 		return false;
 	}
 	if (mnt->root == NULL) {
-		kfprintf(kstderr, "No filesystem root\n");
-		asm("hlt\n");
+		kprintf("No filesystem root\n");
 		return false;
 	}
 	if (mnt->root->dentry == NULL) {
-		kfprintf(kstderr, "No filesystem dentry\n");
-		asm("hlt\n");
+		kprintf("No filesystem dentry\n");
 		return false;
 	}
 	if (mnt->root->dentry->name == NULL) {
-		kfprintf(kstderr, "No filesystem dentry name\n");
-		asm("hlt\n");
+		kprintf("No filesystem dentry name\n");
 		return false;
 	}
-	return strcmp(mnt->root->dentry->name, filterdata) == 0;
+	return kstrcmp(mnt->root->dentry->name, filterdata) == 0;
 }
 
 vfs_mount_t* get_proc_mount() {
 	if (!mounts_initialized) {
-		kfprintf(kstderr, "Mounts not initialized, cannot get /proc mount\n");
+		kprintf("Mounts not initialized, cannot get /proc mount\n");
 		return NULL;
 	}
 	kprintf("%i mounts\n", mounts->size);
 	const list_node_t* proc_mnt =
-	    linked_list_get_node(mounts, "/proc", get_filesystem_filter_function);
+		linked_list_get_node(mounts, "/proc", &get_filesystem_filter_function);
+	kassert(proc_mnt != NULL);
 	if (proc_mnt == NULL) {
-		kfprintf(kstderr, "No proc filesystem found in mounts!\n");
+		kprintf("No proc filesystem found in mounts!\n");
 		return NULL;
 	}
 
@@ -120,7 +122,7 @@ int init_vfs(char* root_part) {
 		kprintf("root partition not set in kernel command line");
 		return 1;
 	}
-	if (strlen(root_part) < 2) {
+	if (kstrlen(root_part) < 2) {
 		kprintf("root partition name length too short");
 		return 1;
 	}
@@ -132,38 +134,26 @@ int init_vfs(char* root_part) {
 
 	mounts = linked_list_create();
 
-	// todo: implement some fs for this
-	fat_mount_data_t* root_mount_data = kzalloc(sizeof(fat_mount_data_t));
-	root_mount_data->is_root = true;
-	block_device_t* root_partition_device = get_block_device_by_name(root_part);
-	if (!root_partition_device) {
-		kprintf("could not find root partition device");
-		return 1;
+	bdev_initialize_blockdevices();
+
+	procfs_mount_data_t procfs_mount_data = {.parent_dentry = root_mnt->root->dentry};
+
+	void* ramdata = kzalloc(RAMFS_BLOCK_SIZE * 32);
+	//void* ramdata2 = kzalloc(RAMFS_BLOCK_SIZE * 32);
+	block_device_t* ramdisk = ramdisk_create("ram0", ramdata, RAMFS_BLOCK_SIZE * 32, RAMFS_BLOCK_SIZE);
+	//block_device_t* ramdisk2 = ramdisk_create("ram1", ramdata2, RAMFS_BLOCK_SIZE * 32, RAMFS_BLOCK_SIZE);
+	inode_t* procfile_ifitexists;
+	root_mnt->root->ops->lookup(root_mnt->root, "proc", &procfile_ifitexists);
+	if (procfile_ifitexists == NULL) {
+		root_mnt->root->ops->mkdir(root_mnt->root, "proc", S_IRGRP | S_IRGRP | S_IROTH | S_IXGRP | S_IXUSR | S_IXOTH | S_ISUID);
 	}
-	vfs_mount_t* root_mount = fat_get_fs_type()->mount(root_partition_device, "/", root_mount_data);
 
-	root_mount->root = kzalloc(sizeof(inode_t));
-	root_mnt = root_mount;
-	root_mount->root->sb = kmalloc(sizeof(superblock_t));
-	root_mount->sb = root_mount->root->sb;
-	root_mount->mounted = true;
-
-	dentry_t* droot = dops.dentry_alloc(NULL, "/");
-	dops.dentry_init(droot, root_mount->root);
-	droot->dops = &dops;
-	droot->refcount++;
-	droot->inode = root_mount->root;
-	root_mount->root->dentry = droot;
-
-	linked_list_push_back(mounts, root_mount);
-
-	procfs_mount_data_t procfs_mount_data = {.parent_dentry = droot};
 
 	vfs_mount_t* procfs_mount =
-	    procfs_getfs()->mount(get_block_device_by_name("ram0p0"), "/proc", &procfs_mount_data);
+	    procfs_getfs()->mount(ramdisk, "/proc", &procfs_mount_data);
 
 	if (procfs_mount == NULL) {
-		kfprintf(kstderr, "Failed to get procfs mount from mount()\n");
+		kprintf("Failed to get procfs mount from mount()\n");
 		asm("hlt\n");
 		return 1;
 	}
@@ -303,10 +293,8 @@ void unmount(vfs_mount_t* mount) {
  * Returns NULL on invalid superblock
  */
 vfs_mount_t* mount(superblock_t* sb, block_device_t* bdev, const char* path) {
-	statfs_t* statfs = kmalloc(sizeof(statfs_t));
-	if (path == NULL) {
-		path = "/";
-	}
+	statfs_t* statfs = kzalloc(sizeof(statfs_t));
+	char* realpath = (path == NULL ? "/" : kstrdup(path));
 	vfs_mount_t* mount_point = NULL;
 
 	if (sb == NULL || sb->ops == NULL || sb->ops->statfs == NULL) {
@@ -315,17 +303,25 @@ vfs_mount_t* mount(superblock_t* sb, block_device_t* bdev, const char* path) {
 	}
 
 	fat_mount_data_t* mdata = kzalloc(sizeof(fat_mount_data_t));
-	mdata->is_root = true;
-	mount_point = sb->fs->mount(bdev, path, mdata);
+	mdata->is_root = path == NULL || kstrcmp("/", path) == 0;
+	mdata->partition = ((partition_t*)bdev->driver_data);
+	mdata->superblock = sb;
+	mount_point = sb->fs->mount(bdev, (const char*)realpath, mdata);
 	if (mount_point == NULL) {
 		goto free;
 	}
 
-	sb->ops->statfs(sb, statfs);
+	kassert(mount_point->sb->ops != NULL);
+	kassert(mount_point->sb->ops->statfs != NULL);
+	kassert(statfs != NULL);
 
-	kprintf("Mounting FS: %s type=%s path=%s\n", sb->fs->name, statfs->f_type, path);
-	mount_point->sb = sb;
+	mount_point->sb->ops->statfs(mount_point->sb, statfs);
 
+#ifdef MELLOS_DEBUG
+	kprintf("mounted filesystem: name=%s\ntype=%X (magic number)\n", mount_point->sb->fs->name, statfs->f_type);
+	kprintf("mountpoint=%s\n", realpath);
+#endif // MELLOS_DEBUG
+	kfree(realpath);
 	linked_list_push_back(mounts, mount_point);
 
 free:

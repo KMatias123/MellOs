@@ -311,8 +311,7 @@ set_target_properties(kernel.elf PROPERTIES OUTPUT_NAME kernel)
 
 # target_include_directories(kernel.elf PRIVATE ${INC_DIRS}
 # ${CMAKE_SOURCE_DIR}/kernel/include)
-target_link_libraries(
-        kernel.elf
+set(LIBS
         memory
         kernel
         drivers
@@ -328,9 +327,8 @@ target_link_libraries(
         utils
         syscalls
         mellos_libc
-        data_structures
-        testing)
-
+        data_structures)
+target_link_libraries(kernel.elf ${LIBS})
 # Add module object libraries
 if (TARGET gui_objs)
     target_sources(kernel.elf PRIVATE $<TARGET_OBJECTS:mellos_libc>)
@@ -445,7 +443,8 @@ foreach (
         utils
         syscalls
         processes
-        testing)
+#        testing
+      )
     if (TARGET ${mod_t})
         target_compile_options(${mod_t} PRIVATE ${MELLOS_COMPILE_OPTIONS})
     endif ()
@@ -547,6 +546,19 @@ add_custom_command(
 add_custom_target(floppy ALL DEPENDS ${FD_PATH})
 add_custom_target(iso ALL DEPENDS ${ISO_PATH})
 add_custom_target(hda ALL DEPENDS ${TEST_IMG_BINARY})
+
+# add_custom_target(
+#   testing-dir
+#   COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/tests
+# )
+
+# add_custom_target(
+#   test
+#   COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:testing> ${CMAKE_BINARY_DIR}/tests
+#   DEPENDS testing-dir testing # testing binaries need to be generated first!
+#   COMMENT "Testing..."
+# )
+
 
 # Debug symbol file equivalent to Makefile's kernel.sym
 add_custom_target(

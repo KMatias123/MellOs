@@ -240,7 +240,7 @@ int ramfs_lookup(inode_t* dir, const char* name, inode_t** out) {
 
 	if (directory->count > 0) {
 		for (uint32_t i = directory->count; i > 0; i--) {
-			if (!strcmp(directory->entries[directory->count].name, name)) {
+			if (!kstrcmp(directory->entries[directory->count].name, name)) {
 				if (directory->entries[directory->count].vnode->mode & S_IRUSR) {
 					*out = directory->entries[directory->count].vnode;
 					return 0;
@@ -279,7 +279,7 @@ int ramfs_mkdir(inode_t* dir, const char* name, uint32_t mode) {
 	entry.vnode->ops = &ramfs_operations;
 	entry.vnode->fops = &ramfs_fileops;
 	entry.vnode->sb = dir->sb;
-	entry.name = strdup(name);
+	entry.name = kstrdup(name);
 
 	return -1;
 }
@@ -309,7 +309,7 @@ ssize_t ramfs_read(file_t* f, void* buf, size_t size, uint64_t offset) {
 		return -EINVAL;
 	}
 
-	memcpy(buf, file->buffer + offset, umin(file->count - offset, size));
+	kmemcpy(buf, file->buffer + offset, umin(file->count - offset, size));
 
 	return 0;
 }
@@ -327,7 +327,7 @@ ssize_t ramfs_write(file_t* f, const void* buf, size_t size, uint64_t offset) {
 		file->buffer = krealloc(file->buffer, file->count, offset + size);
 	}
 
-	memcpy(file->buffer + offset, buf, size);
+	kmemcpy(file->buffer + offset, buf, size);
 	return 0;
 }
 size_t ramfs_readdir(file_t* f, void* dirent_out) {
@@ -347,7 +347,7 @@ inode_t* ramfs_resolve_file(const char* path) {
 	bool sc = true;
 	inode_t* last = root_ramfs_superblock->root;
 
-	char* current_dir_name = kmalloc(strlen(path));
+	char* current_dir_name = kmalloc(kstrlen(path));
 	int path_iterator = 0;
 	int name_iterator = 0;
 	bool last_is_escape = false;
@@ -420,7 +420,7 @@ int ramfs_create_file(inode_t* dir, const char* name, uint32_t mode, inode_t** o
 				return -ENOMEM;
 			}
 		}
-		res->dentry->name = strdup(name);
+		res->dentry->name = kstrdup(name);
 		res->dentry->inode = res;
 
 		return 0;

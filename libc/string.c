@@ -12,6 +12,13 @@
 #include "stdbool.h"
 #include "stdlib.h"
 
+#ifdef __MELLOS_KERNEL_STRING_H
+#error "kernel libc leak into userspace"
+#endif
+#ifndef __STRING_H
+#error __STRING_H not defined in header
+#endif
+
 uint32_t strlen(const char* s) {
 	uint32_t res;
 	for (res = 0; s[res] != 0; res++)
@@ -73,6 +80,7 @@ char* strdup(const char* s) {
 		return NULL;
 	// fixme: libc-side malloc
 	char* res = malloc(strlen(s) + 1);
+	assert(res != NULL);
 	strcpy(res, s);
 	return res;
 }
@@ -194,5 +202,58 @@ void* memmove(void* dest, const void* src, size_t n) {
 		}
 	}
 
+	return dest;
+}
+
+/**
+ * Memset as defined in Unix standard. Uses sse2 if it is enabled in compiler flags, cpuid is
+ * enabled and cpu supports sse2. Uses the lowest 8 bits of value.
+ * @param dest Destination start
+ * @param value Value. Gets converted to uint8_t. Uses the lowest 8 bits.
+ * @param size How many times to fill the lowest 8 bits of value.
+ * @return NULL on failure, dest if value is 0 or success.
+ */
+void* memset(void* dest, int value, size_t size) {
+	if (!dest)
+		return NULL;
+	if (size == 0)
+		return dest;
+	uint8_t* dest_low8 = (uint8_t*)dest;
+
+	uint8_t val = (uint8_t)value;
+
+	#ifdef CONFIG_CPU_FEAT_SSE2
+	if (cpuid_has_sse() && size >= 16) {
+		uint32_t val32 = 0x01010101UL * val;
+
+		__asm__ volatile("movd %0, %%xmm0\n"
+		"pshufd $0, %%xmm0, %%xmm0\n" // Broadcast to all 4 dwords
+		:
+		: "r"(val32)
+		: "xmm0");
+
+		while (size >= 16) {
+			__asm__ volatile("movdqu %%xmm0, (%0)" : : "r"(dest_low8) : "memory");
+			dest_low8 += 16;
+			size -= 16;
+		}
+	} else {
+		#endif
+		if (size >= 4) {
+			uint32_t val32 = 0x01010101UL * val;
+
+			while (size >= 4 && ((uintptr_t)dest_low8 & 3) == 0) {
+				*(uint32_t*)dest_low8 = val32;
+				dest_low8 += 4;
+				size -= 4;
+			}
+		}
+		#ifdef CONFIG_CPU_FEAT_SSE2
+	}
+	#endif
+
+	// Handle remaining bytes
+	while (size--)
+		*dest_low8++ = val;
 	return dest;
 }

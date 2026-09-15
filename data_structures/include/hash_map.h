@@ -4,7 +4,6 @@
 typedef struct hash_map_bucket {
 	uint32_t hash;
 	char* key;
-	size_t key_length;
 	void* value;
 	// for hash collisions we have a linked list
 	struct hash_map_bucket* next;
@@ -19,8 +18,9 @@ typedef struct hash_map {
 } hash_map_t;
 
 hash_map_t* hash_map_create();
-_Bool hash_map_put(hash_map_t* map, const char* key, const void* value);
+_Bool hash_map_put(hash_map_t* map, const void* key, size_t key_len, const void* value);
 void* hash_map_get(hash_map_t* map, const void* key, size_t key_len);
+_Bool hash_map_put_string(hash_map_t* map, const char* key, const void* value);
 void* get_by_string(hash_map_t* map, const char* key);
 _Bool hash_map_remove(hash_map_t* map, const char* key);
 void hash_map_clear(hash_map_t* map);

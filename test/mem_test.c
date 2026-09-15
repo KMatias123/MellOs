@@ -1,5 +1,5 @@
 #include "autoconf.h"
-#include "dynamic_mem.h"
+#include "memory.h"
 #ifdef CONFIG_GFX_VESA
 #include "vesa.h"
 #include "vesa_text.h"

@@ -63,21 +63,20 @@ volatile int* process_lock = 0;
 // }
 
 process_t* create_empty_task() {
-	process_t* res = kmalloc(sizeof(process_t));
-	assert_msg(res != NULL, "Failed to allocate memory for new process");
-	state_t* s = kmalloc(sizeof(state_t));
-	assert_msg(s != NULL, "Failed to allocate memory for new process state");
+	process_t* res = kzalloc(sizeof(process_t));
+	kassert_msg(res != NULL, "Failed to allocate memory for new process");
+	state_t* s = kzalloc(sizeof(state_t));
+	kassert_msg(s != NULL, "Failed to allocate memory for new process state");
 
 	res->state = s;
 	res->must_relinquish = false;
 
 	// Initialize process page list structure
-	res->page_list = kmalloc(sizeof(process_page_list_t));
-	assert_msg(res->page_list != NULL, "Failed to allocate process page list");
+	res->page_list = kzalloc(sizeof(process_page_list_t));
+	kassert_msg(res->page_list != NULL, "Failed to allocate process page list");
 	bool pm_ok = process_memory_init(res->page_list);
-	assert_msg(pm_ok, "Failed to initialize process page list");
-
-	memset(s, 0, sizeof(state_t));
+	kassert_msg(pm_ok, "Failed to initialize process page list");
+	kmemset(s, 0, sizeof(state_t));
 	return res;
 }
 
@@ -126,7 +125,7 @@ process_t* create_task(void* code) {
 
 	uint32_t* stack = kmalloc(stack_size);
 	res->state->stack_base = stack;
-	assert_msg(stack != NULL, "Failed to allocate stack");
+	kassert_msg(stack != NULL, "Failed to allocate stack");
 
 	// Set up the initial stack frame for the new task
 	uint32_t* cur_stack = stack + stack_size - 4;
@@ -164,14 +163,19 @@ void init_scheduler() {
 	processes[0] = create_empty_task();
 
 	//init_stdio_devices(processes[0]);
-
 	const vfs_mount_t* proc_mnt = get_proc_mount();
+	kassert(proc_mnt);
 
 	if (proc_mnt == NULL) {
-		kfprintf(kstderr, "%s",
-			"Failed to get /proc mount point. (Has /proc been initialized?)\n");
+		kprintf("Failed to get /proc mount point. (Has /proc been initialized?)\n");
+		asm("hlt");
 		return;
 	}
+
+	kassert(processes[0] != NULL);
+
+	kassert(proc_mnt->root);
+	kassert(proc_mnt->root->dentry);
 
 	processes[0]->stdout = open_fd_standalone(FD_TYPE_PIPE, proc_mnt->root->dentry, processes[0], 0, S_IWUSR, NULL);
 	processes[0]->stdin = open_fd_standalone(FD_TYPE_PIPE, proc_mnt->root->dentry, processes[0], 0, S_IRUSR, NULL);
@@ -262,7 +266,7 @@ process_t* schedule_process(void* code, process_t* parent, fd_t* stdin_target, f
 	process_t* new_process = create_task(code);
 
 	processes[max_pid] = new_process;
-	assert_msg(processes[max_pid] != NULL, "Failed to schedule new process");
+	kassert_msg(processes[max_pid] != NULL, "Failed to schedule new process");
 
 	max_pid += 1;
 

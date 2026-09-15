@@ -260,7 +260,7 @@ static long long do_char_output(struct fmt* spec, char** dest, size_t* dsize, un
 static long long do_str_output(struct fmt* spec, char** dest, size_t* dsize, union arg* arg) {
 	int len;
 	if (!arg->p) {
-		len = strlen("(null)");
+		len = kstrlen("(null)");
 		if (spec->qualifier == 'l')
 			arg->ws = (const int32_t*)L"(null)";
 		else
@@ -273,7 +273,7 @@ static long long do_str_output(struct fmt* spec, char** dest, size_t* dsize, uni
 			len++;
 		}
 	} else {
-		size_t l = strlen(arg->s);
+		size_t l = kstrlen(arg->s);
 		if (l > INT_MAX)
 			return -1;
 		len = l;
@@ -318,7 +318,7 @@ static long long do_float_output(struct fmt* spec, char** dest, size_t* dsize, u
 	char conversion[64];
 
 	// Initialize buffer
-	memset(conversion, 0, sizeof(conversion));
+	kmemset(conversion, 0, sizeof(conversion));
 
 	// Call dtostr
 	int result =
@@ -327,7 +327,7 @@ static long long do_float_output(struct fmt* spec, char** dest, size_t* dsize, u
 		return -1;
 	}
 
-	int conversion_len = strlen(conversion);
+	int conversion_len = kstrlen(conversion);
 	if (conversion_len == 0) {
 		return -1;
 	}
@@ -427,13 +427,13 @@ static long long do_int_output(struct fmt* spec, char** dest, size_t* dsize, uni
 		else if (base == 16)
 			radix = "0x";
 	}
-	int radix_len = radix ? strlen(radix) : 0;
+	int radix_len = radix ? kstrlen(radix) : 0;
 
 	/* Now convert the integer to a string */
 	int err = do_int(conversion, spec->qualifier, arg->ull, base, sizeof(conversion));
 	if (err)
 		return -1;
-	int conversion_len = strlen(conversion);
+	int conversion_len = kstrlen(conversion);
 	if (base == 16 && spec->flags & FMT_INT_UPPER) {
 		char* conv = conversion;
 		while (*conv) {

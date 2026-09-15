@@ -167,7 +167,7 @@ void* buddy_alloc_internal(size_t size) {
 
 	if (order > MAX_ORDER) {
 		if (!buddy_grow(size + sizeof(Block))) {
-			kfprintf(kstderr, "Failed to grow buddy memory\n");
+			kprintf("Failed to grow buddy memory\n");
 			return NULL;
 		}
 
@@ -185,7 +185,7 @@ void* buddy_alloc_internal(size_t size) {
 
 	if (current_order > MAX_ORDER) {
 		if (!buddy_grow(size + sizeof(Block))) {
-			kfprintf(kstderr, "Failed to grow buddy memory\n");
+			kprintf("Failed to grow buddy memory\n");
 			return NULL;
 		}
 		current_order = order;
@@ -331,7 +331,7 @@ void* slab_alloc(const size_t size) {
 	new_slab->capacity = capacity;
 	new_slab->bitmap = (uint8_t*)(new_slab + 1);
 
-	memset(new_slab->bitmap, 0, (capacity + 7) / 8);
+	kmemset(new_slab->bitmap, 0, (capacity + 7) / 8);
 
 	new_slab->memory = (void*)((char*)new_slab->bitmap + ((capacity + 7) / 8));
 	new_slab->next = slab_heads[idx];
@@ -410,7 +410,7 @@ void* kzalloc(size_t size) {
 	if (!result) {
 		return NULL;
 	}
-	memset(result, 0, size);
+	kmemset(result, 0, size);
 	return result;
 }
 
@@ -454,7 +454,7 @@ void* krealloc(void* oldloc, size_t oldsize, size_t newsize) {
 		return NULL;
 
 	size_t min = (oldsize > newsize) ? newsize : oldsize;
-	memcp(oldloc, newloc, min);
+	kmemcp(oldloc, newloc, min);
 	return newloc;
 
 #endif
@@ -465,8 +465,8 @@ void* krealloc(void* oldloc, size_t oldsize, size_t newsize) {
 #pragma GCC pop_options
 #endif
 void init_allocators() {
-	memset(free_list, 0, sizeof(free_list));
-	memset(slab_heads, 0, sizeof(slab_heads));
+	kmemset(free_list, 0, sizeof(free_list));
+	kmemset(slab_heads, 0, sizeof(slab_heads));
 	if (!buddy_init(0x4000)) {
 		// TODO: This is not ok: if in graphics mode, the
 		// fb has not been initialized yet, so we can't print.

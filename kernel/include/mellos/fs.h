@@ -94,7 +94,7 @@ typedef struct {
 	/**
 	 * Destroys an inode. Required only if allocate_inode is not NULL.
 	 */
-	void (*destroy_inode)(inode_t* inode);
+	int (*destroy_inode)(inode_t* inode);
 	int (*sync)(superblock_t* sb);
 	/**
 	 * Since filesystem sectors / blocks are not always the same size as
@@ -184,7 +184,7 @@ struct dentry_ops {
 	/**
 	 * Creates a new dentry.
 	 */
-	int (*dentry_init)(dentry_t* dentry, inode_t* inode);
+	int (*dentry_init)(dentry_t* dentry, inode_t* inode, char* path);
 
 	dentry_t* (*dentry_alloc)(dentry_t* parent, char* name);
 	/**

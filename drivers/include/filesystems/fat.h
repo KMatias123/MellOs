@@ -1,4 +1,5 @@
 #pragma once
+#include "mellos/block_device.h"
 #include "mellos/fs.h"
 
 #define FAT12_NAME "fat12"
@@ -14,7 +15,9 @@ int fat12_sync(superblock_t* sb);
 int fat12_statfs(superblock_t* sb, statfs_t* st);
 typedef struct {
 	_Bool is_root;
+	partition_t* partition;
 	dentry_t* parent;
+	superblock_t* superblock;
 } fat_mount_data_t;
 
 typedef enum { FAT_TYPE_12, FAT_TYPE_16, FAT_TYPE_32 } fat_type_t;
@@ -73,7 +76,7 @@ typedef struct {
 	uint16_t total_sectors_16;
 	// 0xF0, 0xF8, 0xF9, 0xFA, 0xFB, 0xFC, 0xFD, 0xFE, 0xFF
 	// 0xF8 means non-removable and 0xF0 means removable
-	uint8_t media_type;
+	uint8_t fat_media_type;
 	// (FAT 12, 16) fat size in sectors
 	// must be 0 on FAT32
 	uint16_t table_size_16;

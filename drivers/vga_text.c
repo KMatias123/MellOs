@@ -51,7 +51,7 @@ void clear_line_col(uint32_t line, Colour col){
 }
 
 void scroll_up(int lines){ // Copying memory from VGA to VGA is not the most efficient way to scroll (and relies on memcp being linear), but it's the easiest
-	memcp(TEXT_VIDEO_MEMORY + BYTES_PER_CHAR * VGA_WIDTH * lines, TEXT_VIDEO_MEMORY, VGA_WIDTH * BYTES_PER_CHAR * (VGA_HEIGHT - lines));
+	kmemcp(TEXT_VIDEO_MEMORY + BYTES_PER_CHAR * VGA_WIDTH * lines, TEXT_VIDEO_MEMORY, VGA_WIDTH * BYTES_PER_CHAR * (VGA_HEIGHT - lines));
 	for (int i = VGA_HEIGHT - lines; i < VGA_HEIGHT; i++){
 		clear_line_col(i, DEFAULT_COLOUR);
 	}

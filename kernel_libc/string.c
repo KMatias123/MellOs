@@ -5,20 +5,20 @@
  * StringStartsWith: returns true if s starts with t (max len 80)  *
  ******************************************************************/
 
-#include "dynamic_mem.h"
 #include "assert.h"
+#include "dynamic_mem.h"
 #include "stddef.h"
-#include <stdlib.h>
+#include "string.h"
 
-uint32_t strlen(const char* s) {
+size_t kstrlen(const char* s) {
 	uint32_t res;
 	for (res = 0; s[res] != 0; res++)
 		;
 	return res;
 }
 
-void reverse(char s[]) {
-	uint32_t length = strlen(s);
+void kreverse(char s[]) {
+	uint32_t length = kstrlen(s);
 	uint32_t c, i, j;
 
 	for (i = 0, j = length - 1; i < j; i++, j--) {
@@ -28,7 +28,7 @@ void reverse(char s[]) {
 	}
 }
 
-uint32_t strcmp(const char* s1, const char* s2) {
+uint32_t kstrcmp(const char* s1, const char* s2) {
 	while (*s1 && (*s1 == *s2)) {
 		s1++;
 		s2++;
@@ -36,23 +36,23 @@ uint32_t strcmp(const char* s1, const char* s2) {
 	return *(const unsigned char*)s1 - *(const unsigned char*)s2;
 }
 
-char* strcpy(char* strDest, const char* strSrc) {
-	assert(strDest != NULL && strSrc != NULL);
+char* kstrcpy(char* strDest, const char* strSrc) {
+	kassert(strDest != NULL && strSrc != NULL);
 	char* temp = strDest;
 	while ((*strDest++ = *strSrc++) != '\0')
 		;
 	return temp;
 }
 
-bool string_starts_with(char* s, char* prefix) {
+bool kstring_starts_with(char* s, char* prefix) {
 	while (*prefix)
 		if (*s++ != *prefix++)
 			return false;
 	return true;
 }
 
-char* str_decapitate(char* s, uint32_t n) {
-	size_t len = strlen(s);
+char* kstr_decapitate(char* s, uint32_t n) {
+	size_t len = kstrlen(s);
 	// fixme: libc-side malloc
 	char* res = kmalloc(len - n + 1);
 
@@ -66,16 +66,17 @@ char* str_decapitate(char* s, uint32_t n) {
 	return res;
 }
 
-char* strdup(const char* s) {
+char* kstrdup(const char* s) {
 	if (s == NULL)
 		return NULL;
 	// fixme: libc-side malloc
-	char* res = kmalloc(strlen(s) + 1);
-	strcpy(res, s);
+	char* res = kmalloc(kstrlen(s));
+	kmemcpy(res, s, kstrlen(s));
+
 	return res;
 }
 
-char* drop_after(const char delimiter, char* s, bool include) {
+char* kdrop_after(const char delimiter, char* s, bool include) {
 
 	size_t i = 0;
 	ssize_t first = -1;
@@ -95,7 +96,7 @@ char* drop_after(const char delimiter, char* s, bool include) {
 	return s;
 }
 
-char* drop_after_last(const char delimiter, char* s, bool include) {
+char* kdrop_after_last(const char delimiter, char* s, bool include) {
 	size_t i = 0;
 	ssize_t last = -1;
 	while (s[i] != '\0') {
@@ -114,7 +115,7 @@ char* drop_after_last(const char delimiter, char* s, bool include) {
 	return s;
 }
 
-int memcmp(const void* ptr1, const void* ptr2, size_t size) {
+int kmemcmp(const void* ptr1, const void* ptr2, size_t size) {
 	const uint8_t* p1 = (const uint8_t*)ptr1;
 	const uint8_t* p2 = (const uint8_t*)ptr2;
 
@@ -161,7 +162,7 @@ int memcmp(const void* ptr1, const void* ptr2, size_t size) {
  * @param n how many bytes to scan
  * @return pointer to the first occurrence of c in s, or NULL if not found
  */
-void* memchr(const void* s, int c, size_t n) {
+void* kmemchr(const void* s, int c, size_t n) {
 
 	const uint8_t* p = s;
 	while (n--) {
@@ -172,7 +173,7 @@ void* memchr(const void* s, int c, size_t n) {
 	return NULL;
 }
 
-void* memmove(void* dest, const void* src, size_t n) {
+void* kmemmove(void* dest, const void* src, size_t n) {
 	unsigned char* d = dest;
 	const unsigned char* s = src;
 

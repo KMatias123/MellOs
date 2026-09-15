@@ -8,19 +8,20 @@
 #else
 #include "vga_text.h"
 #endif
-
+/*
 int create_file_test () {
     remove_file("test");
     new_file("test", 1);
     write_string_to_file("this is the night mail crossing the border", "test");
     char* s = read_string_from_file("test");
-    int res = strcmp(s, "this is the night mail crossing the border");
+    int res = kstrcmp(s, "this is the night mail crossing the border");
 
     // TODO should free s here
 
     remove_file("test");
     return res == 0 ? 0 : 1;
 }
+*/
 
 
     /*

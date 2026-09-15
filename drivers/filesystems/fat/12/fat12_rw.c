@@ -1,9 +1,18 @@
 #include "fat12_rw.h"
+#include "assert.h"
 #include "dynamic_mem.h"
+
 #include "errno.h"
 #include "filesystems/fat.h"
+#include "kernel_stdio.h"
 #include "math.h"
+#include "mellos/fs.h"
 #include "string.h"
+#include <stdio.h>
+#include <string.h>
+
+#define DRIVER_NAME "FAT"
+#include "macros.h"
 
 uint32_t cluster_first_sector(fat_driver_data_t* fs, uint32_t cluster) {
 	return fs->first_data_sector + ((cluster - 2) * fs->bfb->sectors_per_cluster);
@@ -29,22 +38,19 @@ uint16_t fat12_get_next_cluster(superblock_t* fs, uint16_t active_cluster,
 	return table_value;
 }
 
-int fat12_create(inode_t* dir, const char* name, uint32_t type, inode_t** out) {
-	fat12_inode_t* fin = kmalloc(sizeof(fat12_inode_t));
-
-	inode_t* in = kmalloc(sizeof(inode_t));
-
-	in->private = fin;
-
-	in->ops = fat_get_inode_ops();
-
-	in->sb = dir->sb;
-	in->fops = fat_get_file_ops();
+int fat12_create(inode_t* dir, const char* name, uint32_t mode, inode_t** out) {
+	if (mode & S_IFDIR) {
+		return -EINVAL;
+	}
+	inode_t* inode = dir->sb->ops->allocate_inode(dir->sb);
+	inode->parent = dir;
+	inode->mode = mode;
+	*out = inode;
 	return 0;
 }
 
 bool fat12_match_83_name(fat12_dir_entry_t* entry, char* string) {
-	return memcmp(entry->name, string, 11) == 0;
+	return kmemcmp(entry->name, string, 11) == 0;
 }
 
 bool is_cluster_valid(uint32_t cluster) {
@@ -63,10 +69,14 @@ int fat12_lookup(inode_t* dir, const char* name, inode_t** out) {
 	fat12_inode_t* fin = dir->private;
 	bool is_root = fin->is_root;
 
-	uint32_t sector;
+	uint32_t sector = 0;
 	uint32_t max_entries;
 	uint32_t entry_index = 0;
-	uint8_t buf[512];
+	char buf[512];
+	ksnprintf(buf, sizeof(buf), "isroot = %s", (is_root ? "true" : "false"));
+	INFO(buf);
+	//INFOF("name: %s", (char*) name);
+	kmemset(buf, 0, sizeof(buf) - 1);
 
 	if (is_root) {
 		sector = fs->first_data_sector - fs->root_dir_sectors; // first_root_sector
@@ -81,8 +91,6 @@ int fat12_lookup(inode_t* dir, const char* name, inode_t** out) {
 				uint32_t sec = first_sector + s;
 				dir->sb->bd->ops->read_blocks(dir->sb->bd, sec, 1, buf);
 
-				fat12_dir_entry_t* de = (fat12_dir_entry_t*)buf;
-
 				for (uint32_t i = 0; i < ents_per_sec; i++) {
 
 					// same Name[0] / Attr logic as above
@@ -94,15 +102,29 @@ int fat12_lookup(inode_t* dir, const char* name, inode_t** out) {
 			cluster = fat12_get_next_cluster(dir->sb, cluster, fs->bfb->reserved_sector_count,
 			                                 fs->bfb->bytes_per_sector);
 		}
-
 		return -ENOENT;
 	}
-
 	while (entry_index < max_entries) {
-		uint32_t sector = sector + (entry_index / ents_per_sec);
+		sector = sector + (entry_index / ents_per_sec);
+		INFODI("sector", sector);
 
-		dir->sb->bd->ops->read_blocks(dir->sb->bd, sector, 1, buf);
+		kassert(dir->sb);
+		kassert(dir->sb->bd);
+        kassert(dir->sb->bd->ops);
+		kassert(dir->sb->bd->ops->read_blocks);
+		kassert(dir->sb->bd->start_lba);
+		kassert(dir->sb->bd->parent);
 
+		/*if (!(dir->sb->flags & BLOCK_DEVICE_FLAG_PARTITION)) {
+			ERR("Superblock does not contain partition flag!");
+			asm("hlt");
+        }*/
+
+		int ret = dir->sb->bd->parent->ops->read_blocks(dir->sb->bd->parent, dir->sb->bd->start_lba + sector, 1, buf);
+		if (ret < 0) {
+			ERR("Unable to read blocks from root partition.");
+			asm("hlt");
+        }
 		fat12_dir_entry_t* de = (fat12_dir_entry_t*)buf;
 
 		for (uint32_t i = 0; i < ents_per_sec && entry_index < max_entries; i++, entry_index++) {
@@ -121,9 +143,8 @@ int fat12_lookup(inode_t* dir, const char* name, inode_t** out) {
 				continue;
 			}
 
-			if (fat12_match_83_name(e, name)) {
+			if (fat12_match_83_name(e, (char*)name)) {
 				// found it: create new inode + fill *out
-
 				*out = dir->sb->ops->allocate_inode(dir->sb);
 				((inode_t*)out)->private = e;
 
@@ -136,7 +157,12 @@ int fat12_lookup(inode_t* dir, const char* name, inode_t** out) {
 }
 
 int fat12_mkdir(inode_t* dir, const char* name, uint32_t type) {
-
+	if (!(type & S_IFDIR)) {
+		return -EINVAL;
+	}
+	inode_t* allocated = dir->sb->ops->allocate_inode(dir->sb);
+	dir->ref_count++;
+	allocated->mode = S_IFDIR;
 	return 0;
 }
 

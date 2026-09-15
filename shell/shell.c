@@ -197,7 +197,7 @@ void parseCommand() {
 		shellfunction* cmd = TryGetCMD(command_buffer);
 		if (cmd != 0) {
 			// execute command
-			cmd->fptr(str_decapitate(command_buffer, strlen(cmd->alias)));
+			cmd->fptr(kstr_decapitate(command_buffer, kstrlen(cmd->alias)));
 		} else {
 			kprint("\"");
 			kprint(command_buffer);

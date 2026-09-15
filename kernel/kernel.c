@@ -3,9 +3,11 @@
  * GR.  MODE: 0xA000  *
  *********************/
 
+#include "mellos/fd.h"
 #include "mellos/kernel/boot_params.h"
 #include "mellos/kernel/memory_mapper.h"
 #include "mellos/kernel/multiboot_tags.h"
+#include "stdbool.h"
 #include "stddef.h"
 // #include "../utils/error_handling.h"                // read docs!
 #include "colours.h"
@@ -24,7 +26,7 @@
 
 #include "keyboard.h"
 
-#include "mellos/block_device.h"
+#include "assert.h"
 
 #include "mellos/kernel/dentry.h"
 #include "mellos/kernel/mount_manager.h"
@@ -291,7 +293,7 @@ __attribute__((section(".entry"))) extern void main(uint32_t multiboot_tags_addr
 				break;
 		}
 	} else {
-		memset(boot_cmdline, 0, sizeof(boot_cmdline));
+		kmemset(boot_cmdline, 0, sizeof(boot_cmdline));
 	}
 
 	fb_addr = (uint32_t)get_multiboot_framebuffer_addr((MultibootTags*)multiboot_tags_addr);
@@ -377,13 +379,17 @@ __attribute__((section(".text"))) _Noreturn void higher_half_main(uintptr_t mult
 #endif
 	//init_kernel_devices();
 	init_stdio_files();
-
-	bdev_initialize_blockdevices();
 	init_fs_registry();
+	//bdev_initialize_blockdevices();
+	dentry_manager_init();
+	kassert_msg(init_vfs(param_get_address("root")) == 0, "vfs did not initialize correctly");
+	kassert(get_root_mount());
+	kassert(get_proc_mount());
+	vfs_mount_t* mount1 = get_proc_mount();
+    kassert_msg(mount1 == get_proc_mount(), "get_proc_mount is differing on each call")
 	// ramfs_init();
 
-	init_vfs(param_get_address("root"));
-	dentry_manager_init();
+
 	asm volatile("sti");
 #ifdef MELLOS_ENABLE_TESTS
 	kprint("MellOS Debug mode:\n\n");
@@ -440,12 +446,13 @@ __attribute__((section(".text"))) _Noreturn void higher_half_main(uintptr_t mult
 	asm volatile("cli");
 	init_scheduler();
 	asm volatile("sti");
-
+	asm("hlt");
 #ifdef AUDIO_ENABLED
 	// Victory!
 	play_startup_jingle();
 #endif
 
 	load_shell();
+	while (true) {}
 	// init_text_editor("test_file");
 }

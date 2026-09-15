@@ -82,7 +82,7 @@ void write_serial(char a, COM_PORT port) {
 }
 
 void uart_print(const char* s, COM_PORT port) {
-    size_t len = strlen(s);
+    size_t len = kstrlen(s);
     for (size_t i = 0; i < len; i++) {
         write_serial(s[i], port);
     }

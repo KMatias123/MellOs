@@ -2,7 +2,7 @@
 
 #include "stdint.h"
 
-// remember to update the kernel space unistd if you update the syscalls
+// remember to update the userspace unistd if you update the syscalls
 #define SYS_EXIT 1
 #define SYS_FORK 2
 #define SYS_READ 3
@@ -15,14 +15,6 @@
 #define SYS_MPROTECT 10
 
 #define SYS_MMAP_MAP 0x01
-
-// Generic syscall helpers with different argument counts (use long-sized args)
-long syscall0(long number);
-long syscall1(long number, long arg1);
-long syscall2(long number, long arg1, long arg2);
-long syscall3(long number, long arg1, long arg2, long arg3);
-long syscall4(long number, long arg1, long arg2, long arg3, long arg4);
-long syscall5(long number, long arg1, long arg2, long arg3, long arg4, long arg5);
 
 int syscall_exit(int status);
 int syscall_write(int fd, const char *buf, size_t count);

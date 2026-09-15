@@ -3,25 +3,20 @@
 #include "mellos/fd.h"
 #include "processes.h"
 
-#include "kernel_stdio.h"
+#include "memory_area_spec.h"
 
 #include "cpu/idt.h"
 
 #include "stdio.h"
-
-#include "unistd.h"
 
 #ifdef CONFIG_GFX_VESA
 #include "vesa_text.h"
 #else
 #include "vga_text.h"
 #endif
-#include "dynamic_mem.h"
-#include "file_system.h"
-#include "memory_area_spec.h"
+#include "unistd.h"
 #include "paging/paging.h"
 #include "process_memory.h"
-#include "shell/shell.h"
 #include "string.h"
 #include "syscalls.h"
 

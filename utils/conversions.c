@@ -45,7 +45,7 @@ const char* tostring(int n, int base, char* dest) {
 	
 	buffer[i] = '\0';
 
-	reverse(buffer);
+	kreverse(buffer);
 
 	return buffer;
 }
@@ -69,7 +69,7 @@ const char* tostring_unsigned(uint32_t n, int base, char* dest) {
     
     buffer[i] = '\0';
 
-    reverse(buffer);
+    kreverse(buffer);
 
     return buffer;
 }
@@ -216,16 +216,16 @@ int dtostr(char* dest, double value, int precision, size_t dsize) {
     // Handle special cases
     if (value != value) { // NaN
         if (dsize < 4) return -EOVERFLOW;
-        strcpy(dest, "nan");
+        kstrcpy(dest, "nan");
         return 0;
     }
 
     if (value == 1.0/0.0 || value == -1.0/0.0) { // Infinity
         if (dsize < 4) return -EOVERFLOW;
         if (value < 0) {
-            strcpy(dest, "-inf");
+            kstrcpy(dest, "-inf");
         } else {
-            strcpy(dest, "inf");
+            kstrcpy(dest, "inf");
         }
         return 0;
     }

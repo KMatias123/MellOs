@@ -1,6 +1,7 @@
 #include "hash_map.h"
 #include "autoconf.h"
 #include "dynamic_mem.h"
+#include "math.h"
 #include "mellos/hash.h"
 #include "kernel_stdio.h"
 #include "stddef.h"
@@ -12,7 +13,7 @@ hash_map_t* hash_map_create() {
 	map->capacity = 16;
 	map->size = 0;
 	map->buckets = kzalloc(map->capacity * sizeof(hash_map_bucket_t*));
-	memset(map->buckets, 0, map->capacity * sizeof(hash_map_bucket_t*));
+	kmemset(map->buckets, 0, map->capacity * sizeof(hash_map_bucket_t*));
 
 	return map;
 }
@@ -54,7 +55,7 @@ float get_load_factor(hash_map_t* map) {
 	return (float)map->size / (float)map->capacity;
 }
 
-hash_map_bucket_t* create_bucket(const char* key, uint32_t key_len, uint32_t hash) {
+hash_map_bucket_t* create_bucket(const char* key, uint32_t hash) {
 
 	hash_map_bucket_t* next = kzalloc(sizeof(hash_map_bucket_t));
 
@@ -66,16 +67,16 @@ hash_map_bucket_t* create_bucket(const char* key, uint32_t key_len, uint32_t has
 	next->next = NULL;
 	next->value = NULL;
 	next->key = (char*)key;
-	next->key_length = key_len;
 	next->hash = hash;
 	return next;
 }
 
-bool hash_map_put(hash_map_t* map, const char* key, const void* value) {
+bool hash_map_put(hash_map_t* map, const void* key, size_t key_len, const void* value) {
 
 	map->size++; // this is here for the following load factor check
 
-	const uint32_t hash = hash_djb2_string(key);
+	const uint32_t hash = hash_djb2(key, key_len);
+	kprintf("hash-put: %u\n", hash);
 
 	if (get_load_factor(map) > (float)CONFIG_HASHMAP_LOAD_FACTOR / (float)100) {
 		rehash(map, map->capacity * CONFIG_HASHMAP_GROW_MULTIPLIER / 100);
@@ -84,14 +85,13 @@ bool hash_map_put(hash_map_t* map, const char* key, const void* value) {
 	hash_map_bucket_t* bucket = map->buckets[hash % map->capacity];
 
 	if (bucket == NULL) {
-		bucket = create_bucket(key, strlen(key), hash);
+		bucket = create_bucket(key, hash);
 	}
 
 	while ((bucket->value != NULL || bucket->key != NULL) &&
-	       (strlen(bucket->key) != bucket->key_length &&
-	        memcmp(bucket->key, key, strlen(bucket->key)) != 0)) {
+	       kmemcmp(bucket->key, key, key_len) != 0) {
 		if (bucket->next == NULL) {
-			bucket->next = create_bucket(key, strlen(key), hash);
+			bucket->next = create_bucket(key, hash);
 			if (bucket->next == NULL) {
 				// was unable to allocate memory
 				map->size--;
@@ -104,28 +104,27 @@ bool hash_map_put(hash_map_t* map, const char* key, const void* value) {
 	if (bucket->value == NULL) {
 		bucket->hash = hash;
 		bucket->value = (void*)value;
-		bucket->key_length = strlen(key);
 	} else {
-		kfprintf(kstderr, "corrupted hash map? bucket: %p", bucket);
+		kfprintf(kstderr, "corrupted hash map? bucket: %p\n", bucket);
 	}
 	return true;
 }
 
 void* hash_map_get(hash_map_t* map, const void* key, size_t key_len) {
 	uint32_t hash = hash_djb2(key, key_len);
+	kprintf("hash-get: %u\n", hash);
 	hash_map_bucket_t* hmb = map->buckets[hash % map->capacity];
 
 	while (hmb != NULL) {
-		if (hmb->key_length != key_len) {
-			if (hmb->next == NULL) {
-				return NULL;
-			} else {
-				hmb = hmb->next;
-				continue;
-			}
-		}
+		kprintf("found hash\n");
+        if (hmb->next == NULL) {
+            return NULL;
+        } else {
+            hmb = hmb->next;
+            continue;
+        }
 
-		if (memcmp(hmb->key, key, hmb->key_length) != 0) {
+		if (kmemcmp(hmb->key, key, key_len) != 0) {
 			if (hmb->next == NULL) {
 				return NULL;
 			}
@@ -139,21 +138,24 @@ void* hash_map_get(hash_map_t* map, const void* key, size_t key_len) {
 	return NULL;
 }
 
+bool hash_map_put_string(hash_map_t* map, const char* key, const void* value) {
+	return hash_map_put(map, key, kstrlen(key) + 1, value);
+}
+
 void* get_by_string(hash_map_t* map, const char* key) {
-	return hash_map_get(map, key, strlen(key));
+	return hash_map_get(map, key, kstrlen(key) + 1);
 }
 // todo: non-string binary remove
 bool hash_map_remove(hash_map_t* map, const char* key) {
-	size_t key_len = strlen(key);
-	uint32_t hash = hash_djb2(key, strlen(key));
+	size_t key_len = kstrlen(key);
+	uint32_t hash = hash_djb2(key, kstrlen(key));
 	uint32_t walked = 0;
 	hash_map_bucket_t* hmb = map->buckets[hash % map->capacity];
 	hash_map_bucket_t* prev = NULL;
 	while (hmb) {
-		if (key_len == hmb->key_length && memcmp(key, hmb->key, key_len) == 0) {
+		if (kmemcmp(key, hmb->key, key_len) == 0) {
 
 			if (walked == 0) {
-				hmb->key_length = 0;
 				hmb->value = NULL;
 				hmb->key = NULL;
 				map->size--;
@@ -183,7 +185,6 @@ void hash_map_clear(hash_map_t* map) {
 			// Clear the first bucket but keep it allocated
 			bucket->key = NULL;
 			bucket->value = NULL;
-			bucket->key_length = 0;
 
 			// Free all later buckets in the chain
 			hash_map_bucket_t* next = bucket->next;

@@ -47,14 +47,14 @@ int sys_write(regs_t* r) {
 
 	switch (LBA) {
 		case 1:
-			if (strlen(msg) > len) {
+			if (kstrlen(msg) > len) {
 				msg[len - 1] = 0;
 			}
 
 			pipe_write(current_process->stdout, msg, len);
 			return 0;
 		case 2: // stderr
-			if (strlen(msg) > len) {
+			if (kstrlen(msg) > len) {
 				msg[len - 1] = 0;
 			}
 			pipe_write(current_process->stderr, msg, len);

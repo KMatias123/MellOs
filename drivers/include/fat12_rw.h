@@ -45,6 +45,8 @@ uint16_t fat12_get_next_cluster(superblock_t* fs, uint16_t active_cluster, uint3
 int fat12_lookup(inode_t* dir, const char* name, inode_t** out);
 int fat12_create(inode_t* dir, const char* name, uint32_t type, inode_t** out);
 int fat12_mkdir(inode_t* dir, const char* name, uint32_t type);
+inode_t* fat12_allocate_inode(superblock_t* superblock);
+int fat12_destroy_inode(inode_t* inode);
 
 ssize_t fat12_read(file_t* f, void* buf, size_t size, uint64_t offset);
 ssize_t fat12_write(file_t* f, const void* buf, size_t size, uint64_t offset);
