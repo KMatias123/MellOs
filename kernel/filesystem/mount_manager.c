@@ -66,9 +66,14 @@ bool get_filesystem_filter_function(list_node_t* node, void* filterdata) {
 	kassert(node->data != NULL);
 	const vfs_mount_t* mnt = node->data;
 
-	dentry_t* de = get_or_create_dentry(filterdata);
-	kassert(de != NULL);
 	kassert(mnt != NULL);
+
+
+
+	kassert(mnt->root != NULL);
+	kassert(mnt->root->dentry != NULL);
+	dentry_t* de = mnt->root->dentry;
+	kassert(de != NULL);
 	kassert(de->inode != NULL);
 	if (de->inode == NULL) {
 		asm("hlt");
@@ -103,6 +108,7 @@ bool get_filesystem_filter_function(list_node_t* node, void* filterdata) {
 vfs_mount_t* get_proc_mount() {
 	if (!mounts_initialized) {
 		kprintf("Mounts not initialized, cannot get /proc mount\n");
+		asm("hlt");
 		return NULL;
 	}
 	kprintf("%i mounts\n", mounts->size);

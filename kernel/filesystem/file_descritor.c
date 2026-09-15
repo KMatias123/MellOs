@@ -15,7 +15,7 @@ fd_t* open_fd_standalone(fd_type_t type, dentry_t* dentry, process_t* process, i
 		errno = ENFILE; // system wide limit reached
 		return NULL;
 	}
-	if (open_file_descriptors[fdid].name != NULL) {
+	if (open_file_descriptors[fdid].flags & FD_INUSE) {
 		errno = EBUSY;
 		return NULL;
 	}
@@ -43,19 +43,16 @@ fd_t* open_fd_standalone(fd_type_t type, dentry_t* dentry, process_t* process, i
 		}
 
 		fd_name = "null_fd";
-		open_file_descriptors[fdid].name = kmalloc(kstrlen(fd_name));
 		open_file_descriptors[fdid].name = fd_name;
 		open_file_descriptors[fdid].private_data = file;
 		break;
 	case FD_TYPE_PIPE:
 		fd_name = "pipe_fd";
-		open_file_descriptors[fdid].name = kmalloc(kstrlen(fd_name));
 		open_file_descriptors[fdid].name = fd_name;
 		open_file_descriptors[fdid].private_data = kmalloc(sizeof(pipe_t));
 		break;
 	case FD_TYPE_FILE:
 		fd_name = "file_fd";
-		open_file_descriptors[fdid].name = kmalloc(kstrlen(fd_name));
 		open_file_descriptors[fdid].name = fd_name;
 		file = kmalloc(sizeof(file_t));
 		open_file_descriptors[fdid].private_data = file;
@@ -65,14 +62,12 @@ fd_t* open_fd_standalone(fd_type_t type, dentry_t* dentry, process_t* process, i
 		break;
 	case FD_TYPE_DEVICE:
 		fd_name = "device_fd";
-		open_file_descriptors[fdid].name = kmalloc(kstrlen(fd_name));
 		open_file_descriptors[fdid].name = fd_name;
 		open_file_descriptors[fdid].private_data = kmalloc(sizeof(file_t));
 		((file_t*)open_file_descriptors[fdid].private_data)->inode->mode = S_IFBLK | permissions;
 		((file_t*)open_file_descriptors[fdid].private_data)->inode->ref_count += 1;
 	case FD_TYPE_CHAR:
 		fd_name = "char_fd";
-		open_file_descriptors[fdid].name = kmalloc(kstrlen(fd_name));
 		open_file_descriptors[fdid].name = fd_name;
 		open_file_descriptors[fdid].private_data = kmalloc(sizeof(file_t));
 		file = ramfs_open_file_handle(path, FD_TYPE_CHAR);
@@ -87,8 +82,12 @@ fd_t* open_fd_standalone(fd_type_t type, dentry_t* dentry, process_t* process, i
 		return NULL;
 	}
 	inode_t** in = kmalloc(sizeof(inode_t*));
+	kassert(dentry->inode != NULL);
+	kassert(dentry->inode->ops != NULL);
+	kassert(dentry->inode->ops->create != NULL);
 	int r = dentry->inode->ops->create(dentry->inode, path, flags, in);
 	kassert(r >= 0);
+	open_file_descriptors[fdid].flags |= FD_INUSE;
 	process->open_files_count++;
 	return &open_file_descriptors[fdid];
 }
@@ -109,7 +108,7 @@ int find_first_free_file_PID(uint32_t pid) {
 
 int find_first_free_fd() {
 	for (int i = 0; i < MAX_OPEN_FILES; i++) {
-		if (open_file_descriptors[i].name == NULL) {
+		if (!(open_file_descriptors[i].flags & FD_INUSE)) {
 			return i;
 		}
 	}

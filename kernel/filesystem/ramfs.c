@@ -1,6 +1,7 @@
 #include "mellos/ramfs.h"
 #include "dynamic_mem.h"
 #include "errno.h"
+#include "filesystems/procfs.h"
 #include "math.h"
 #include "mellos/fs.h"
 #include "kernel_stdio.h"
@@ -75,12 +76,12 @@ int ramfs_init() {
 	root_inode->private = NULL;
 
 	// todo: proper superblock init
-	root_ramfs_superblock = kmalloc(sizeof(superblock_t));
-	mount_data_t* mdata = kmalloc(sizeof(mount_data_t));
-	mdata->total_blocks = 512;
-	root_ramfs_superblock->root = root_inode;
-	root_ramfs_superblock->ops = &ramfs_super_ops;
-	mount(root_ramfs_superblock, get_block_device_by_name("ram0"), "/");
+	//root_ramfs_superblock = kmalloc(sizeof(superblock_t));
+	//mount_data_t* mdata = kmalloc(sizeof(mount_data_t));
+	//mdata->total_blocks = 512;
+	//root_ramfs_superblock->root = root_inode;
+	//root_ramfs_superblock->ops = &ramfs_super_ops;
+	//mount(root_ramfs_superblock, get_block_device_by_name("ram0"), "/");
 
 	root_inode->sb = root_ramfs_superblock;
 	root_inode->ops = &ramfs_operations;
@@ -100,8 +101,8 @@ int ramfs_init() {
 	inode_t* dev_inode = kmalloc(sizeof(inode_t*));
 	inode_t* proc_inode = kmalloc(sizeof(inode_t*));
 
-	ramfs_create_file(root_inode, "proc", S_IFDIR | S_IRUSR | S_IWUSR, &proc_inode);
-	ramfs_create_file(root_inode, "dev", S_IFDIR | S_IRUSR | S_IWUSR, &dev_inode);
+	//ramfs_create_file(root_inode, "proc", S_IFDIR | S_IRUSR | S_IWUSR, &proc_inode);
+	//ramfs_create_file(root_inode, "dev", S_IFDIR | S_IRUSR | S_IWUSR, &dev_inode);
 
 	if (dev_inode == NULL || proc_inode == NULL) {
 		return -ENOMEM;
@@ -123,17 +124,18 @@ int ramfs_init() {
 	proc_ramfs_superblock = kmalloc(sizeof(superblock_t));
 	proc_ramfs_superblock->root = proc_mount->root;
 	proc_ramfs_superblock->ops = &ramfs_super_ops;
-	proc_ramfs_superblock->bd = get_block_device_by_name("ram0");
+	proc_ramfs_superblock->bd = get_block_device_by_name("ram0p1");
 
 	proc_mount->sb = proc_ramfs_superblock;
 	proc_mount->mounted = true;
 	proc_mount->root->dentry = kmalloc(sizeof(dentry_t));
-	proc_mount->root->dentry->inode = dev_inode;
+	proc_mount->root->dentry->inode = proc_mount->root;
 	proc_mount->root->dentry->parent = ramfs_root_dentry;
 	proc_mount->root->dentry->name = "/proc";
 	proc_mount->root->mode =
 		S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IWGRP | S_IXGRP | S_IROTH | S_IXOTH | S_IFDIR;
 	proc_mount->root->sb = proc_mount->sb;
+	proc_mount->sb->ops = procfs_get_file_ops();
 	proc_mount->root->ops = &ramfs_operations;
 	proc_mount->root->fops = &ramfs_fileops;
 	proc_mount->root->ref_count = 1;
@@ -150,7 +152,7 @@ int ramfs_init() {
 	dev_ramfs_superblock->total_blocks = RAMFS_MAX_BLOCKS;
 	dev_ramfs_superblock->root = dev_mount->root;
 	dev_ramfs_superblock->ops = &ramfs_super_ops;
-	dev_ramfs_superblock->bd = get_block_device_by_name("ram0");
+	dev_ramfs_superblock->bd = get_block_device_by_name("ram0p2");
 
 	dev_mount->sb = dev_ramfs_superblock;
 

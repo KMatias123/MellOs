@@ -176,10 +176,15 @@ void init_scheduler() {
 
 	kassert(proc_mnt->root);
 	kassert(proc_mnt->root->dentry);
-
-	processes[0]->stdout = open_fd_standalone(FD_TYPE_PIPE, proc_mnt->root->dentry, processes[0], 0, S_IWUSR, NULL);
-	processes[0]->stdin = open_fd_standalone(FD_TYPE_PIPE, proc_mnt->root->dentry, processes[0], 0, S_IRUSR, NULL);
-	processes[0]->stderr = open_fd_standalone(FD_TYPE_PIPE, proc_mnt->root->dentry, processes[0], 0, S_IWUSR, NULL);
+	processes[0]->stdout =
+	    open_fd_standalone(FD_TYPE_PIPE, proc_mnt->root->dentry, processes[0], 0, S_IWUSR, NULL);
+	kassert(processes[0]->stdout);
+	processes[0]->stdin =
+	    open_fd_standalone(FD_TYPE_PIPE, proc_mnt->root->dentry, processes[0], 0, S_IRUSR, NULL);
+    kassert(processes[0]->stdin);
+	processes[0]->stderr =
+	    open_fd_standalone(FD_TYPE_PIPE, proc_mnt->root->dentry, processes[0], 0, S_IWUSR, NULL);
+    kassert(processes[0]->stderr);
 	open_pipe(processes[0]->stdin, NULL, 128);
 	open_pipe(NULL, processes[0]->stdout, 128);
 	open_pipe(NULL, processes[0]->stderr, 128);

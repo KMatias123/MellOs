@@ -3,7 +3,7 @@
 #define FD_MAX_TOTAL 4096
 
 /// Open mode flags
-#define O_RDONLY 0x0000 // Read-only
+#define O_RDONLY 0x0010 // Read-only
 #define O_WRONLY 0x0001 // Write-only
 #define O_RDWR 0x0002   // Read-Write
 
@@ -24,6 +24,8 @@
 #define FD_CLOSED 0x800  // File descriptor is closed
 #define FD_OPEN 0x1000   // File descriptor is actively open
 #define FD_LOCKED 0x2000 // File descriptor is locked (exclusive access)
+#define FD_INUSE 0x4000
+
 #include "fs.h"
 
 typedef enum {
